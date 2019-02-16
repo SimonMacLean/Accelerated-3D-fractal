@@ -31,8 +31,5 @@ C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Ac
 C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.IL.dll
 C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.Parallel.dll
 C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\FSharp.Core.dll
-C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\OpenTK.dll
 C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.xml
-C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\OpenTK.pdb
-C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\OpenTK.xml
 C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.CopyComplete

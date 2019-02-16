@@ -25,7 +25,6 @@ namespace Accelerated_3D_fractal
         private float3[] directions;
         private DeviceMemory<float3> dirDevMem;
         private deviceptr<float3> dirDevPtr;
-        private Color[] colors;
         private ColorPalette cp;
         private float3 camera;
         private float cameraBaseDist;
