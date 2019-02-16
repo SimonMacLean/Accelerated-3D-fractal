@@ -4,7 +4,9 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -17,17 +19,18 @@ namespace Accelerated_3D_fractal
     public partial class Form1 : Form
     {
         private Bitmap b;
-        private float[] pixels;
-        private DeviceMemory<float> pixDevMem;
-        private deviceptr<float> pixDevPtr;
+        private byte[] pixels;
+        private DeviceMemory<byte> pixDevMem;
+        private deviceptr<byte> pixDevPtr;
+        private float3[] directions;
         private DeviceMemory<float3> dirDevMem;
         private deviceptr<float3> dirDevPtr;
+        private Color[] colors;
+        private ColorPalette cp;
         private float3 camera;
-        private float3 cameraBase;
         private float cameraBaseDist;
         private float3 center;
         private float3 lightLocation;
-        private float3[] directions;
         private float3 x;
         private float3 y;
         private float3 z;
@@ -47,7 +50,7 @@ namespace Accelerated_3D_fractal
         private int Width;
         private int Height;
         private float ambientOccStrength = 0.03f;
-        public float shadowStrength = 2;
+        public float shadowStrength = 8;
         private readonly dim3 BlockSize = new dim3(32, 32);
         private dim3 GridSize;
         private LaunchParam launchParam;
@@ -65,28 +68,34 @@ namespace Accelerated_3D_fractal
             directions = new float3[Width * Height];
             dirDevMem = gpu.AllocateDevice(directions);
             dirDevPtr = dirDevMem.Ptr;
-            pixels = new float[Width * Height];
+            pixels = new byte[Width * Height];
             pixDevMem = gpu.AllocateDevice(pixels);
             pixDevPtr = pixDevMem.Ptr;
-            b = new Bitmap(Width, Height);
+            b = new Bitmap(Width, Height, Width,
+                     PixelFormat.Format8bppIndexed,
+                     Marshal.UnsafeAddrOfPinnedArrayElement(pixels, 0));
             center = new float3(0, 0, 0);
             camera = new float3(0, 0, 1.5f);
-            cameraBase = new float3(0, 0, 1.5f);
             cameraBaseDist = 1.5f;
             lightLocation = new float3(-2, 4, 6);
             GridSize = new dim3(Width / BlockSize.x, Height / BlockSize.y);
             launchParam = new LaunchParam(GridSize, BlockSize);
             minDist = ScaledDE(camera, iterations, scale, side) / Height;
             GetDirections();
+            cp = b.Palette;
+            for(int i = 0; i < 256; i++)
+            {
+                cp.Entries[i] = Color.FromArgb(i, i, i);
+            }
+            b.Palette = cp;
             x = new float3(1, 0, 0);
             y = new float3(0, 1, 0);
             z = new float3(0, 0, -1);
             t = new Timer();
             t.Interval = 1;
-            t.Enabled = true;
+            t.Enabled = false;
             t.Tick += Update;
         }
-
         private void Update(object sender, EventArgs e)
         {
             elapsed += 0.001f;
@@ -145,18 +154,23 @@ namespace Accelerated_3D_fractal
         {
             int i = blockIdx.x * blockDim.x + threadIdx.x;
             int j = blockIdx.y * blockDim.y + threadIdx.y;
-            int h = Index(i, j, (int)width);
+            int h = Index(i, (int)height - 1 - j, (int)width);
             float3 p = new float3((i - width / 2) / height, (j - height / 2) / height, focalLength);
             p = d(p, l(p));
             directions[h] = p;
         }
-        public static void MarchRay(deviceptr<float3> directions, deviceptr<float> pixelValues, float3 camera, float3 light, float diffuse, 
-            float ambient, float ambientOccStrength, float minDist, float maxDist, int maxStep, float width, float height, int iterations, 
+        public void GetColor(deviceptr<Color> colors)
+        {
+            int i = blockIdx.x * blockDim.x + threadIdx.x;
+            colors[i] = Color.FromArgb(i, i, i);
+        }
+        public static void MarchRay(deviceptr<float3> directions, deviceptr<byte> pixelValues, float3 camera, float3 light, float diffuse,
+            float ambient, float ambientOccStrength, float minDist, float maxDist, int maxStep, int width, int height, int iterations,
             float scale, float side, float shadowStrength)
         {
             int i = blockIdx.x * blockDim.x + threadIdx.x;
             int j = blockIdx.y * blockDim.y + threadIdx.y;
-            int h = Index(i, j, (int)width);
+            int h = Index(i, j, width);
             float3 p = camera;
             int stepnum = 0;
             float dist = minDist + 1;
@@ -180,13 +194,13 @@ namespace Accelerated_3D_fractal
                 float normalAngle = o(off, Normal(p, iterations, scale, side, minDist));
                 if (normalAngle > 0)
                 {
-                    shadow = NewSoftShadow(p, off, shadowStrength, iterations, scale, side, minDist, lightVectorLength, 0.001f);
+                    shadow = NewSoftShadow(p, off, shadowStrength, iterations, scale, side, minDist, lightVectorLength + 1f, 0.01f);
                     diffuseCalculated = DeviceFunction.Max(diffuse * shadow * normalAngle, 0);
                 }
                 greyscale = (diffuseCalculated + ambient / (1 + stepnum * ambientOccStrength));
                 greyscale = DeviceFunction.Min(DeviceFunction.Max(greyscale, 0), 1);
             }
-            pixelValues[h] = greyscale;
+            pixelValues[h] = (byte)(greyscale * byte.MaxValue);
         }
         [GpuManaged]
         public void GetDirections()
@@ -197,14 +211,20 @@ namespace Accelerated_3D_fractal
         [GpuManaged]
         public void MarchRays()
         {
+            if (cp == null)
+                return;
             gpu.Launch(MarchRay, launchParam, dirDevPtr, pixDevPtr, camera, lightLocation, diffuse, ambient, ambientOccStrength, minDist, maxDist, maxStep,
-                (float)Width, (float)Height, iterations, scale, side, shadowStrength);
+                Width, Height, iterations, scale, side, shadowStrength);
             Gpu.Copy(gpu, pixDevPtr, pixels, 0L, Width * Height);
-            for(int i = 0; i < Width * Height; i++)
-            {
-                int greyscale = (int)(pixels[i] * 255);
-                b.SetPixel(i % Width, Height - 1 - i / Width, Color.FromArgb(greyscale, greyscale, greyscale));
-            }
+            b = new Bitmap(Width, Height, Width,
+                     PixelFormat.Format8bppIndexed,
+                     Marshal.UnsafeAddrOfPinnedArrayElement(pixels, 0));
+            b.Palette = cp;
+            //for (int i = 0; i < Width * Height; i++)
+            //{
+             //   int greyscale = (int)(pixels[i] * 255);
+            //    b.SetPixel(i % Width, Height - 1 - i / Width, Color.FromArgb(greyscale, greyscale, greyscale));
+           //}
         }
         public static float OldSoftShadow(float3 p, float3 d, float shadowStrength, int iterations, float scale, float side, float minDist, float maxDist, float minAngle)
         {
@@ -350,35 +370,35 @@ namespace Accelerated_3D_fractal
             if (directions.Length != 0)
             {
                 MarchRays();
-                e.Graphics.DrawImage(b, 0, 0, b.Width * granularity, b.Height * granularity);
+                e.Graphics.DrawImage(b, Point.Empty);
             }
         }
 
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
-            switch(e.KeyCode)
+            switch (e.KeyCode)
             {
                 case Keys.D:
-                    cameraBase = a(camera, m(x, movementSize));
+                    camera = a(camera, m(x, movementSize));
                     break;
                 case Keys.A:
-                    cameraBase = s(camera, m(x, movementSize));
+                    camera = s(camera, m(x, movementSize));
                     break;
                 case Keys.Space:
-                    cameraBase = a(camera, m(y, movementSize));
+                    camera = a(camera, m(y, movementSize));
                     break;
                 case Keys.ShiftKey:
-                    cameraBase = s(camera, m(y, movementSize));
+                    camera = s(camera, m(y, movementSize));
                     break;
                 case Keys.W:
-                    cameraBase = a(camera, m(z, movementSize));
+                    camera = a(camera, m(z, movementSize));
                     break;
                 case Keys.S:
-                    cameraBase = s(camera, m(z, movementSize));
+                    camera = s(camera, m(z, movementSize));
                     break;
             }
-            cameraBaseDist = l(cameraBase);
-            minDist = ScaledDE(camera, iterations, scale, side) / Height;
+            cameraBaseDist = l(camera);
+            minDist = ScaledDE(camera, iterations, scale, side) / Height *2;
             if (minDist <= 0)
                 minDist = 1;
             Invalidate();

@@ -17,3 +17,22 @@ C:\Users\simon\Desktop\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\A
 C:\Users\simon\Desktop\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\OpenTK.dll
 C:\Users\simon\Desktop\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\OpenTK.pdb
 C:\Users\simon\Desktop\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\OpenTK.xml
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csprojAssemblyReference.cache
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated_3D_fractal.Form1.resources
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated_3D_fractal.Properties.Resources.resources
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.GenerateResource.cache
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.CoreCompileInputs.cache
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.exe
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.pdb
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Accelerated 3D fractal.exe.config
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Accelerated 3D fractal.exe
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Accelerated 3D fractal.pdb
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.dll
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.IL.dll
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.Parallel.dll
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\FSharp.Core.dll
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\OpenTK.dll
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.xml
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\OpenTK.pdb
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\OpenTK.xml
+C:\Users\simon\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.CopyComplete
