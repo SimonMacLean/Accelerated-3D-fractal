@@ -35,16 +35,17 @@ namespace Accelerated_3D_fractal
         private float3 z;
         private Timer t;
         private float elapsed = 0;
-        private float movementSize = 0.05f;
-        private float scale = 1 / 3.0f;
+        private float baseMovementSize = 0.5f;
+        private float movementSize;
+        private float scale = 3.1f;
         private float diffuse = 0.5f;
         private float ambient = 0.5f;
         private float focalLength = -1;
         private float minDist = 1;
         private float maxDist = 5;
-        private int maxStep = 1000;
+        private int maxStep = 10000;
         private int granularity = 1;
-        private int iterations = 5;
+        private int iterations = 8;
         private float side = 1;
         private int Width;
         private int Height;
@@ -62,6 +63,7 @@ namespace Accelerated_3D_fractal
         }
         public void Init()
         {
+            scale = 1 / scale;
             Width = ClientRectangle.Width / granularity / 2 * 2;
             Height = ClientRectangle.Height / granularity / 2 * 2;
             directions = new float3[Width * Height];
@@ -80,6 +82,7 @@ namespace Accelerated_3D_fractal
             GridSize = new dim3(Width / BlockSize.x, Height / BlockSize.y);
             launchParam = new LaunchParam(GridSize, BlockSize);
             minDist = ScaledDE(camera, iterations, scale, side) / Height;
+            movementSize = minDist * Height * baseMovementSize;
             GetDirections();
             cp = b.Palette;
             for(int i = 0; i < 256; i++)
@@ -193,7 +196,7 @@ namespace Accelerated_3D_fractal
                 float normalAngle = o(off, Normal(p, iterations, scale, side, minDist));
                 if (normalAngle > 0)
                 {
-                    shadow = NewSoftShadow(p, off, shadowStrength, iterations, scale, side, minDist, lightVectorLength + 1f, 0.01f);
+                    shadow = NewSoftShadow(p, off, shadowStrength, iterations, scale, side, minDist, lightVectorLength, 0.01f);
                     diffuseCalculated = DeviceFunction.Max(diffuse * shadow * normalAngle, 0);
                 }
                 greyscale = (diffuseCalculated + ambient / (1 + stepnum * ambientOccStrength));
@@ -230,7 +233,7 @@ namespace Accelerated_3D_fractal
             float k = 1;
             float dist = minDist;
             float angle = 1;
-            float totalDist = 0;
+            float totalDist = minDist / 100;
             float3 marchedPoint = p;
             while (totalDist < maxDist)
             {
@@ -254,16 +257,16 @@ namespace Accelerated_3D_fractal
         {
             float darkness = 1;
             float prevDist = float.MaxValue;
-            float dist = minDist;
+            float dist = minDist / 100;
             float angle = 1;
-            float totalDist = 0;
+            float totalDist = minDist;
             float oldNewIntDist = 0;
             float legLength = 0;
             while (totalDist < maxDist)
             {
                 dist = ScaledDE(a(p, m(d, totalDist)), iterations, scale, side);
                 if (dist == 0)
-                    dist = minDist;
+                    dist = 0.000000001f;
                 oldNewIntDist = dist * dist / (2 * prevDist);
                 legLength = DeviceFunction.Sqrt(dist * dist - oldNewIntDist * oldNewIntDist);
                 angle = shadowStrength * legLength / DeviceFunction.Max(0, totalDist - oldNewIntDist);
@@ -314,12 +317,11 @@ namespace Accelerated_3D_fractal
             {
                 p = ScaleSpace(p, scale);
                 p = AbsSpace(p);
-                p = TranslateSpace(p, new float3(side, side, side));
-                p = FoldSpace(p, new float3(-1, 0, 1));
-                p = FoldSpace(p, new float3(-1, 1, 0));
-                p = TranslateSpace(p, new float3(-side / 2, 0, 0));
-                p = FoldSpace(p, new float3(1, 0, 0));
-                p = TranslateSpace(p, new float3(side / 2, 0, 0));
+                p = FoldSpace(p, new float3(1, -1, 0));
+                p = FoldSpace(p, new float3(1, 0, -1));
+                p = TranslateSpace(p, new float3(side * 0.2f, 0, 0));
+                p = AbsSpaceX(p);
+                p = TranslateSpace(p, new float3(side * 0.2f, 0, 0));
             }
             return p;
         }
@@ -357,6 +359,36 @@ namespace Accelerated_3D_fractal
         public static float3 AbsSpace(float3 p)
         {
             return new float3(DeviceFunction.Abs(p.x), DeviceFunction.Abs(p.y), DeviceFunction.Abs(p.z));
+        }
+        public static float3 AbsSpaceX(float3 p)
+        {
+            return new float3(DeviceFunction.Abs(p.x), p.y, p.z);
+        }
+        public static float3 AbsSpaceY(float3 p)
+        {
+            return new float3(p.x, DeviceFunction.Abs(p.y), p.z);
+        }
+        public static float3 AbsSpaceZ(float3 p)
+        {
+            return new float3(p.x, p.y, DeviceFunction.Abs(p.z));
+        }
+        public static float3 RotateX(float3 z, float t)
+        {
+            z.y = DeviceFunction.Cos(t) * z.y + DeviceFunction.Sin(t) * z.z;
+            z.z = DeviceFunction.Cos(t) * z.z - DeviceFunction.Sin(t) * z.y;
+            return z;
+        }
+        public static float3 RotateY(float3 z, float t)
+        {
+            z.x = DeviceFunction.Cos(t) * z.x - DeviceFunction.Sin(t) * z.z;
+            z.z = DeviceFunction.Cos(t) * z.z + DeviceFunction.Sin(t) * z.x;
+            return z;
+        }
+        public static float3 RotateZ(float3 z, float t)
+        {
+            z.x = DeviceFunction.Cos(t) * z.x + DeviceFunction.Sin(t) * z.y;
+            z.y = DeviceFunction.Cos(t) * z.y - DeviceFunction.Sin(t) * z.x;
+            return z;
         }
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -397,7 +429,8 @@ namespace Accelerated_3D_fractal
                     break;
             }
             cameraBaseDist = l(camera);
-            minDist = ScaledDE(camera, iterations, scale, side) / Height *2;
+            minDist = ScaledDE(camera, iterations, scale, side) / Height;
+            movementSize = minDist * Height  * baseMovementSize;
             if (minDist <= 0)
                 minDist = 1;
             Invalidate();
