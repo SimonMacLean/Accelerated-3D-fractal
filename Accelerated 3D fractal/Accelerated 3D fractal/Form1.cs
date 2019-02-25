@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Alea;
 using Alea.CSharp;
+using Alea.FSharp;
 using Alea.Parallel;
 
 namespace Accelerated_3D_fractal
@@ -37,16 +38,18 @@ namespace Accelerated_3D_fractal
         private float elapsed = 0;
         private float baseMovementSize = 0.5f;
         private float movementSize;
-        private float scale = 3.1f;
-        private float diffuse = 0.5f;
-        private float ambient = 0.5f;
+        private float scale = 1.9073f;
+        private float angle1 = -9.83f;
+        private float angle2 = -1.16f;
+        private float3 shift = new float3(-6.5f, -7, 6);
+        private float2 cols = new float2(0.5f, 0.5f);
         private float focalLength = -1;
         private float minDist = 1;
-        private float maxDist = 5;
-        private int maxStep = 10000;
+        private float maxDist = 100;
         private int granularity = 1;
-        private int iterations = 8;
-        private float side = 1;
+        private int iterations = 0;
+        private float side = 6;
+        private int transformNum = 7;
         private int Width;
         private int Height;
         private float ambientOccStrength = 0.03f;
@@ -76,23 +79,23 @@ namespace Accelerated_3D_fractal
                      PixelFormat.Format8bppIndexed,
                      Marshal.UnsafeAddrOfPinnedArrayElement(pixels, 0));
             center = new float3(0, 0, 0);
-            camera = new float3(0, 0, 1.5f);
+            camera = new float3(7, 0, 0);
             cameraBaseDist = 1.5f;
-            lightLocation = new float3(-2, 4, 6);
+            lightLocation = new float3(20, 40, 60);
             GridSize = new dim3(Width / BlockSize.x, Height / BlockSize.y);
             launchParam = new LaunchParam(GridSize, BlockSize);
-            minDist = ScaledDE(camera, iterations, scale, side) / Height;
+            minDist = ScaledDE(camera, iterations, scale, side, angle1, angle2, shift) / Height;
             movementSize = minDist * Height * baseMovementSize;
             GetDirections();
             cp = b.Palette;
-            for(int i = 0; i < 256; i++)
+            for (int i = 0; i < 256; i++)
             {
                 cp.Entries[i] = Color.FromArgb(i, i, i);
             }
             b.Palette = cp;
-            x = new float3(1, 0, 0);
-            y = new float3(0, 1, 0);
-            z = new float3(0, 0, -1);
+            x = new float3(0, 1, 0);
+            y = new float3(0, 0, 1);
+            z = new float3(-1, 0, 0);
             t = new Timer();
             t.Interval = 1;
             t.Enabled = false;
@@ -157,7 +160,7 @@ namespace Accelerated_3D_fractal
             int i = blockIdx.x * blockDim.x + threadIdx.x;
             int j = blockIdx.y * blockDim.y + threadIdx.y;
             int h = Index(i, (int)height - 1 - j, (int)width);
-            float3 p = new float3((i - width / 2) / height, (j - height / 2) / height, focalLength);
+            float3 p = new float3(focalLength, (i - width / 2) / height, (j - height / 2) / height);
             p = d(p, l(p));
             directions[h] = p;
         }
@@ -166,9 +169,9 @@ namespace Accelerated_3D_fractal
             int i = blockIdx.x * blockDim.x + threadIdx.x;
             colors[i] = Color.FromArgb(i, i, i);
         }
-        public static void MarchRay(deviceptr<float3> directions, deviceptr<byte> pixelValues, float3 camera, float3 light, float diffuse,
-            float ambient, float ambientOccStrength, float minDist, float maxDist, int maxStep, int width, int height, int iterations,
-            float scale, float side, float shadowStrength)
+        public static void MarchRay(deviceptr<float3> directions, deviceptr<byte> pixelValues, float3 camera,
+            float3 light, float2 cols, float minDist, float maxDist, int maxstep, int width, int iterations,
+            float scale, float side, float angle1, float angle2, float3 shift, float shadowStrength)
         {
             int i = blockIdx.x * blockDim.x + threadIdx.x;
             int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -177,12 +180,14 @@ namespace Accelerated_3D_fractal
             int stepnum = 0;
             float dist = minDist + 1;
             float totalDist = 0;
-            while (totalDist < maxDist && dist > minDist && stepnum < maxStep)
+            while (totalDist < maxDist && dist > minDist)
             {
-                dist = ScaledDE(p, iterations, scale, side);
+                dist = ScaledDE(p, iterations, scale, side, angle1, angle2, shift);
                 p = a(p, m(directions[h], dist));
                 totalDist += dist;
                 stepnum++;
+                if (stepnum == maxstep)
+                    dist = minDist / 2;
             }
             float greyscale = 0;
             if (DeviceFunction.Abs(dist) <= minDist)
@@ -193,13 +198,13 @@ namespace Accelerated_3D_fractal
                 //float3 marchedPoint = MarchRay(lightLocation, off, iterations, scale, side, minDist, maxDist, maxStep);
                 float shadow = 1;
                 float diffuseCalculated = 0;
-                float normalAngle = o(off, Normal(p, iterations, scale, side, minDist));
+                float normalAngle = o(off, Normal(p, iterations, scale, side, angle1, angle2, shift, minDist));
                 if (normalAngle > 0)
                 {
-                    shadow = NewSoftShadow(p, off, shadowStrength, iterations, scale, side, minDist, lightVectorLength, 0.01f);
-                    diffuseCalculated = DeviceFunction.Max(diffuse * shadow * normalAngle, 0);
+                    shadow = NewSoftShadow(p, off, shadowStrength, iterations, scale, side, angle1, angle2, shift, minDist, lightVectorLength, 0.01f);
+                    diffuseCalculated = DeviceFunction.Max(cols.y * shadow * normalAngle, 0);
                 }
-                greyscale = (diffuseCalculated + ambient / (1 + stepnum * ambientOccStrength));
+                greyscale = (diffuseCalculated + cols.x / (1 + stepnum * 0.03f));
                 greyscale = DeviceFunction.Min(DeviceFunction.Max(greyscale, 0), 1);
             }
             pixelValues[h] = (byte)(greyscale * byte.MaxValue);
@@ -215,8 +220,8 @@ namespace Accelerated_3D_fractal
         {
             if (cp == null)
                 return;
-            gpu.Launch(MarchRay, launchParam, dirDevPtr, pixDevPtr, camera, lightLocation, diffuse, ambient, ambientOccStrength, minDist, maxDist, maxStep,
-                Width, Height, iterations, scale, side, shadowStrength);
+            gpu.Launch(MarchRay, launchParam, dirDevPtr, pixDevPtr, camera, lightLocation, cols, minDist, maxDist, 100,
+                Width, iterations, scale, side, angle1, angle2, shift, shadowStrength);
             Gpu.Copy(gpu, pixDevPtr, pixels, 0L, Width * Height);
             b = new Bitmap(Width, Height, Width,
                      PixelFormat.Format8bppIndexed,
@@ -224,11 +229,45 @@ namespace Accelerated_3D_fractal
             b.Palette = cp;
             //for (int i = 0; i < Width * Height; i++)
             //{
-             //   int greyscale = (int)(pixels[i] * 255);
+            //   int greyscale = (int)(pixels[i] * 255);
             //    b.SetPixel(i % Width, Height - 1 - i / Width, Color.FromArgb(greyscale, greyscale, greyscale));
-           //}
+            //}
         }
-        public static float OldSoftShadow(float3 p, float3 d, float shadowStrength, int iterations, float scale, float side, float minDist, float maxDist, float minAngle)
+        public static float color(float orbit)
+        {
+            return (byte)(byte.MaxValue * ((DeviceFunction.Sin(orbit) + 1) / 2));
+        }
+        public static float OrbitMin(float3 p, int iterations, float scale, float side, float angle1, float angle2, float3 shift)
+        {
+            float dist = float.MaxValue;
+            for (int i = 0; i < iterations; i++)
+            {
+                p = WarpSpace(p, 1, scale, angle1, angle2, shift);
+                dist = DeviceFunction.Min(dist, o(p, p));
+            }
+            return DeviceFunction.Sqrt(dist);
+        }
+        public static float OrbitMax(float3 p, int iterations, float scale, float side, float angle1, float angle2, float3 shift)
+        {
+            float dist = float.MinValue;
+            for (int i = 0; i < iterations; i++)
+            {
+                p = WarpSpace(p, 1, scale, angle1, angle2, shift);
+                dist = DeviceFunction.Max(dist, o(p, p));
+            }
+            return DeviceFunction.Sqrt(dist);
+        }
+        public static float OrbitSum(float3 p, int iterations, float scale, float side, float angle1, float angle2, float3 shift)
+        {
+            float dist = 0;
+            for (int i = 0; i < iterations; i++)
+            {
+                p = WarpSpace(p, 1, scale, angle1, angle2, shift);
+                dist += l(p);
+            }
+            return dist;
+        }
+        public static float OldSoftShadow(float3 p, float3 d, float shadowStrength, int iterations, float scale, float side, float angle1, float angle2, float3 shift, float minDist, float maxDist, float minAngle)
         {
             float k = 1;
             float dist = minDist;
@@ -237,7 +276,7 @@ namespace Accelerated_3D_fractal
             float3 marchedPoint = p;
             while (totalDist < maxDist)
             {
-                dist = ScaledDE(marchedPoint, iterations, scale, side);
+                dist = ScaledDE(marchedPoint, iterations, scale, side, angle1, angle2, shift);
                 if (dist == 0)
                     dist = minDist;
                 marchedPoint = a(marchedPoint, m(d, dist));
@@ -253,7 +292,7 @@ namespace Accelerated_3D_fractal
             }
             return k;
         }
-        public static float NewSoftShadow(float3 p, float3 d, float shadowStrength, int iterations, float scale, float side, float minDist, float maxDist, float minAngle)
+        public static float NewSoftShadow(float3 p, float3 d, float shadowStrength, int iterations, float scale, float side, float angle1, float angle2, float3 shift, float minDist, float maxDist, float minAngle)
         {
             float darkness = 1;
             float prevDist = float.MaxValue;
@@ -264,7 +303,7 @@ namespace Accelerated_3D_fractal
             float legLength = 0;
             while (totalDist < maxDist)
             {
-                dist = ScaledDE(a(p, m(d, totalDist)), iterations, scale, side);
+                dist = ScaledDE(a(p, m(d, totalDist)), iterations, scale, side, angle1, angle2, shift);
                 if (dist == 0)
                     dist = 0.000000001f;
                 oldNewIntDist = dist * dist / (2 * prevDist);
@@ -282,24 +321,24 @@ namespace Accelerated_3D_fractal
             }
             return darkness;
         }
-        public static float3 Normal(float3 p, int iterations, float scale, float side, float epsilon)
+        public static float3 Normal(float3 p, int iterations, float scale, float side, float angle1, float angle2, float3 shift, float epsilon)
         {
             float3 scaled = new float3(
-                ScaledDE(new float3(p.x + epsilon, p.y, p.z), iterations, scale, side) -
-                ScaledDE(new float3(p.x - epsilon, p.y, p.z), iterations, scale, side),
-                ScaledDE(new float3(p.x, p.y + epsilon, p.z), iterations, scale, side) -
-                ScaledDE(new float3(p.x, p.y - epsilon, p.z), iterations, scale, side),
-                ScaledDE(new float3(p.x, p.y, p.z + epsilon), iterations, scale, side) -
-                ScaledDE(new float3(p.x, p.y, p.z - epsilon), iterations, scale, side));
+                ScaledDE(new float3(p.x + epsilon, p.y, p.z), iterations, scale, side, angle1, angle2, shift) -
+                ScaledDE(new float3(p.x - epsilon, p.y, p.z), iterations, scale, side, angle1, angle2, shift),
+                ScaledDE(new float3(p.x, p.y + epsilon, p.z), iterations, scale, side, angle1, angle2, shift) -
+                ScaledDE(new float3(p.x, p.y - epsilon, p.z), iterations, scale, side, angle1, angle2, shift),
+                ScaledDE(new float3(p.x, p.y, p.z + epsilon), iterations, scale, side, angle1, angle2, shift) -
+                ScaledDE(new float3(p.x, p.y, p.z - epsilon), iterations, scale, side, angle1, angle2, shift));
             return d(scaled, l(scaled));
         }
         public static float DE(float3 p, float side)
         {
             return CubeDE(p, new float3(0, 0, 0), side);
         }
-        public static float ScaledDE(float3 p, int iterations, float scale, float side)
+        public static float ScaledDE(float3 p, int iterations, float scale, float side, float angle1, float angle2, float3 shift)
         {
-            return WarpDist(DE(WarpSpace(p, iterations, scale, side), side), iterations, scale);
+            return WarpDist(DE(WarpSpace(p, iterations, scale, angle1, angle2, shift), side), iterations, scale);
         }
         public static float SphereDE(float3 p, float3 c, float di)
         {
@@ -311,17 +350,31 @@ namespace Accelerated_3D_fractal
             float d = DeviceFunction.Max(DeviceFunction.Abs(o.x), DeviceFunction.Max(DeviceFunction.Abs(o.y), DeviceFunction.Abs(o.z)));
             return d - di / 2;
         }
-        public static float3 WarpSpace(float3 p, int iterations, float scale, float side)
+        public static float3 Orbit(float3 p, int iterations, float scale, float angle1, float angle2, float3 shift, float3 col)
+        {
+            float3 orbit = new float3(0, 0, 0);
+            for (int i = 0; i < iterations; i++)
+            {
+                p = AbsSpace(p);
+                p = RotateZ(p, angle1);
+                p = FoldMenger(p);
+                p = RotateX(p, angle2);
+                p = m(p, scale);
+                p = TranslateSpace(p, shift);
+                orbit = MaxSpace(orbit, ScaleSpace(p, col));
+            }
+            return orbit;
+        }
+        public static float3 WarpSpace(float3 p, int iterations, float scale, float angle1, float angle2, float3 shift)
         {
             for (int i = 0; i < iterations; i++)
             {
-                p = ScaleSpace(p, scale);
                 p = AbsSpace(p);
-                p = FoldSpace(p, new float3(1, -1, 0));
-                p = FoldSpace(p, new float3(1, 0, -1));
-                p = TranslateSpace(p, new float3(side * 0.2f, 0, 0));
-                p = AbsSpaceX(p);
-                p = TranslateSpace(p, new float3(side * 0.2f, 0, 0));
+                p = RotateZ(p, angle1);
+                p = FoldMenger(p);
+                p = RotateX(p, angle2);
+                p = ScaleSpace(p, scale);
+                p = TranslateSpace(p, m(shift, -1));
             }
             return p;
         }
@@ -341,6 +394,13 @@ namespace Accelerated_3D_fractal
         {
             return d(p, s);
         }
+        public static float3 ScaleSpace(float3 p, float3 s)
+        {
+            p.x *= s.x;
+            p.y *= s.y;
+            p.z *= s.z;
+            return p;
+        }
         public static float3 TranslateSpace(float3 p, float3 offset)
         {
             return s(p, offset);
@@ -355,6 +415,26 @@ namespace Accelerated_3D_fractal
                 return p;
             else
                 return s(p, d(m(m(n, 2), o(p, n)), o(n, n)));
+        }
+        public static float3 FoldMenger(float3 z)
+        {
+            float a = DeviceFunction.Min(z.x - z.y, 0);
+            z.x -= a;
+            z.y += a;
+            a = DeviceFunction.Min(z.x - z.z, 0);
+            z.x -= a;
+            z.z += a;
+            a = DeviceFunction.Min(z.y - z.z, 0);
+            z.y -= a;
+            z.z += a;
+            return z;
+        }
+        public static float3 MaxSpace(float3 a, float3 b)
+        {
+            a.x = DeviceFunction.Max(a.x, b.x);
+            a.y = DeviceFunction.Max(a.x, b.x);
+            a.z = DeviceFunction.Max(a.x, b.x);
+            return a;
         }
         public static float3 AbsSpace(float3 p)
         {
@@ -374,28 +454,36 @@ namespace Accelerated_3D_fractal
         }
         public static float3 RotateX(float3 z, float t)
         {
-            z.y = DeviceFunction.Cos(t) * z.y + DeviceFunction.Sin(t) * z.z;
-            z.z = DeviceFunction.Cos(t) * z.z - DeviceFunction.Sin(t) * z.y;
-            return z;
+            float3 p = z;
+            float s = DeviceFunction.Sin(t);
+            float c = DeviceFunction.Cos(t);
+            p.y = c * z.y + s * z.z;
+            p.z = c * z.z - s * z.y;
+            return p;
         }
         public static float3 RotateY(float3 z, float t)
         {
-            z.x = DeviceFunction.Cos(t) * z.x - DeviceFunction.Sin(t) * z.z;
-            z.z = DeviceFunction.Cos(t) * z.z + DeviceFunction.Sin(t) * z.x;
-            return z;
+            float3 p = z;
+            float s = DeviceFunction.Sin(t);
+            float c = DeviceFunction.Cos(t);
+            p.x = c * z.x - DeviceFunction.Sin(t) * z.z;
+            p.z = c * z.z + DeviceFunction.Sin(t) * z.x;
+            return p;
         }
         public static float3 RotateZ(float3 z, float t)
         {
-            z.x = DeviceFunction.Cos(t) * z.x + DeviceFunction.Sin(t) * z.y;
-            z.y = DeviceFunction.Cos(t) * z.y - DeviceFunction.Sin(t) * z.x;
-            return z;
+            float3 p = z;
+            float s = DeviceFunction.Sin(t);
+            float c = DeviceFunction.Cos(t);
+            p.x = c * z.x + s * z.y;
+            p.y = c * z.y - s * z.x;
+            return p;
         }
         private void Form1_Load(object sender, EventArgs e)
         {
             Init();
             Invalidate();
         }
-
         private void Form1_Paint(object sender, PaintEventArgs e)
         {
             if (directions.Length != 0)
@@ -404,7 +492,6 @@ namespace Accelerated_3D_fractal
                 e.Graphics.DrawImage(b, Point.Empty);
             }
         }
-
         private void Form1_KeyDown(object sender, KeyEventArgs e)
         {
             switch (e.KeyCode)
@@ -427,10 +514,61 @@ namespace Accelerated_3D_fractal
                 case Keys.S:
                     camera = s(camera, m(z, movementSize));
                     break;
+                case Keys.D1:
+                    angle1 += 0.05f;
+                    break;
+                case Keys.D2:
+                    angle1 -= 0.05f;
+                    break;
+                case Keys.D3:
+                    angle2 += 0.05f;
+                    break;
+                case Keys.D4:
+                    angle2 -= 0.05f;
+                    break;
+                case Keys.Up:
+                    shift.z += 0.05f;
+                    break;
+                case Keys.Down:
+                    shift.z -= 0.05f;
+                    break;
+                case Keys.Left:
+                    shift.x -= 0.05f;
+                    break;
+                case Keys.Right:
+                    shift.x += 0.05f;
+                    break;
+                case Keys.PageUp:
+                    shift.y += 0.05f;
+                    break;
+                case Keys.PageDown:
+                    shift.y -= 0.05f;
+                    break;
+                case Keys.Oemcomma:
+                    scale /= 1.1f;
+                    break;
+                case Keys.OemPeriod:
+                    scale *= 1.1f;
+                    break;
+                case Keys.OemMinus:
+                    iterations--;
+                    break;
+                case Keys.Oemplus:
+                    iterations++;
+                    break;
+                case Keys.R:
+                    angle1 = 0;
+                    angle2 = 0;
+                    shift = new float3(0, 0, 0);
+                    scale = 1;
+                    iterations = 1;
+                    break;
+                default:
+                    return;
             }
             cameraBaseDist = l(camera);
-            minDist = ScaledDE(camera, iterations, scale, side) / Height;
-            movementSize = minDist * Height  * baseMovementSize;
+            minDist = 1f / Width * cameraBaseDist;
+            movementSize = 0.03f;
             if (minDist <= 0)
                 minDist = 1;
             Invalidate();
