@@ -1,19 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Alea;
 using Alea.CSharp;
 using Alea.FSharp;
-using Alea.Parallel;
 
 namespace Accelerated_3D_fractal
 {
@@ -27,24 +21,18 @@ namespace Accelerated_3D_fractal
         private DeviceMemory<float3> dirDevMem;
         private deviceptr<float3> dirDevPtr;
         private float3 camera;
-        private float cameraBaseDist;
         private float3 center;
         private float3 lightLocation;
         private float3 x;
         private float3 y;
         private float3 z;
-        private Timer t;
-        private float elapsed = 0;
         private float baseMovementSize = 1f;
         private float movementSize;
-        private string levelName = "Custom";
         private float3 seed = new float3(1, 0, 0);
         private float3 shift = new float3(0, 0, 0);
-        private float2 cols = new float2(0.3f, 0.8f);
-        private string[] names;
+        private float2 cols = new float2(0.5f, 0.8f);
         private float3[] seeds;
         private float3[] offsets;
-        private int levelnum = -1;
         private int2 mouseLocation;
         private float mouseSensitivity = 0.01f;
         private bool isMouseDown = false;
@@ -53,7 +41,7 @@ namespace Accelerated_3D_fractal
         private float maxDist = 100;
         private int granularity = 1;
         private int iterations = 0;
-        private float side = 6;
+        private float side = 1;
         private int width;
         private int height;
         private int bytes = 3;
@@ -72,20 +60,19 @@ namespace Accelerated_3D_fractal
         public void Init()
         {
             Font = new Font(FontFamily.GenericMonospace, 10);
-            width = ClientRectangle.Width / granularity / 2 * 2;
-            height = ClientRectangle.Height / granularity / 2 * 2;
+            width = ScreenDivider.Panel2.ClientSize.Width / granularity / 4 * 4;
+            height = ScreenDivider.Panel2.ClientSize.Height / granularity / 4 * 4;
             directions = new float3[width * height];
             dirDevMem = gpu.AllocateDevice(directions);
             dirDevPtr = dirDevMem.Ptr;
             pixels = new byte[width * height * bytes];
             pixDevMem = gpu.AllocateDevice(pixels);
             pixDevPtr = pixDevMem.Ptr;
-            b = new Bitmap(width, height, width,
+            b = new Bitmap(width, height, width * bytes,
                      PixelFormat.Format24bppRgb,
                      Marshal.UnsafeAddrOfPinnedArrayElement(pixels, 0));
             center = new float3(0, 0, 0);
-            camera = new float3(7, 0, 0);
-            cameraBaseDist = 1.5f;
+            camera = new float3(3, 0, 0);
             lightLocation = new float3(20, 20, 20);
             GridSize = new dim3(width / BlockSize.x, height / BlockSize.y);
             launchParam = new LaunchParam(GridSize, BlockSize);
@@ -94,84 +81,62 @@ namespace Accelerated_3D_fractal
             x = new float3(0, 0, 1);
             y = new float3(0, 1, 0);
             z = new float3(-1, 0, 0);
-            names = new[]{
-                "Jump The Crater",
-                "Too Many Trees",
-                "Hole In One",
-                "Around The World",
-                "The Hills Are Alive",
-                "Beware Of Bumps",
-                "Mountain Climbing",
-                "The Catwalk",
-                "Mind The Gap",
-                "Don't Get Crushed",
-                "The Sponge",
-                "Ride The Gecko",
-                "Build Up Speed",
-                "Around The Citadel",
-                "Planet Crusher",
-                "Top Of The Citadel",
-                "Building Bridges",
-                "Pylon Palace",
-                "The Crown Jewels",
-                "Expressways",
-                "Bunny Hops",
-                "Asteroid Field",
-                "Lily Pads",
-                "Fatal Fissures"
-            };
             seeds = new[]{
                 new float3(1.8f, -0.12f, 0.5f),
                 new float3(1.9073f, 2.72f, -1.16f),
                 new float3(2.02f, -1.57f, 1.62f),
-                new float3(1.65f, 0.37f, 5.26f),
-                new float3(1.77f, -0.22f, 5.62f),
+                new float3(1.65f, 0.37f, -1.023f),
+                new float3(1.77f, -0.22f, -0.663f),
                 new float3(1.66f, 1.52f, 0.19f),
-                new float3(1.58f, -1.45f, 3.95f),
-                new float3(1.87f, -3.12f, 0.02f),
-                new float3(1.81f, -4.84f, -2.99f),
+                new float3(1.58f, -1.45f, -2.333f),
+                new float3(1.87f, 3.141f, 0.02f),
+                new float3(1.81f, 1.44f, -2.99f),
                 new float3(1.93f, 1.34637f, 1.58f),
-                new float3(1.88f, 1.52f, 4.91f),
-                new float3(1.6f, 3.77f, 3.93f),
-                new float3(2.08f, -4.79f, 3.16f),
-                new float3(2.0773f, -9.66f, -1.34f),
-                new float3(1.78f, -0.1f, 3.28f),
-                new float3(2.0773f, -9.66f, -1.34f),
-                new float3(1.8093f, -3.165f, -3.2094777f),
+                new float3(1.88f, 1.52f, -1.373f),
+                new float3(1.6f, -2.51f, -2.353f),
+                new float3(2.08f, 1.493f, 3.141f),
+                new float3(2.0773f, 2.906f, -1.34f),
+                new float3(1.78f, -0.1f, -3.003f),
+                new float3(2.0773f, 2.906f, -1.34f),
+                new float3(1.8093f, 3.141f, 3.074f),
                 new float3(1.95f, 1.570796f, 0),
                 new float3(1.91f, 0.06f, -0.76f),
                 new float3(1.8986f, -0.4166f, 0.00683f),
                 new float3(2.03413f, 1.688f, -1.57798f),
                 new float3(1.6516888f, 0.026083898f, -0.7996324f),
-                new float3(1.77746f, 4.62318f, 0.0707307f),
-                new float3(2.13f, -1.77f, -1.62f)
+                new float3(1.77746f, -1.66f, 0.0707307f),
+                new float3(2.13f, -1.77f, -1.62f),
+                new float3(1, 0, 0)
             };
             offsets = new[]{
-                new float3(-2.12f, -2.75f, 0.49f),
-                new float3(-2.958f, -3.193f, 2.695f),
-                new float3(-3.31f, 6.19f, 1.53f),
-                new float3(-1.41f, -0.22f, -0.77f),
-                new float3(-2.08f, -1.42f, -1.93f),
-                new float3(-3.83f, -1.94f, -1.09f),
-                new float3(-1.55f, -0.13f, -2.52f),
-                new float3(-3.57f, 0.129f, 2.95f),
-                new float3(-2.905f, 0.765f, -4.165f),
-                new float3(-2.31f, 1.123f, 1.56f),
-                new float3(-4.54f, -1.26f, 0.1f),
-                new float3(-2, -0.41f, -1.43f),
-                new float3(-7.43f, 5.96f, -6.23f),
-                new float3(-1.238f, -1.533f, 1.085f),
-                new float3(-1.47f, 1.7f, -0.4f),
-                new float3(-1.238f, -1.533f, 1.085f),
-                new float3(-1.0939f, -0.43495f, -3.1113f),
-                new float3(-6.75f, -3, 0),
-                new float3(-3.44f, -0.69f, -1.14f),
-                new float3(-2.5130f, -5.4067f, -2.51f),
-                new float3(-4.803822f, -4.1f, -1.39063f),
-                new float3(-3.85863f, -5.13741f, -0.918303f),
-                new float3(-4.6867f, -0.84376f, 1.98158f),
-                new float3(-4.99f, -3.05f, -4.48f)
+                new float3(0.353333f,  0.458333f, -0.081667f),
+                new float3(0.493000f,  0.532167f, -0.449167f),
+                new float3(0.551667f, -1.031667f, -0.255000f),
+                new float3(0.235000f,  0.036667f,  0.128333f),
+                new float3(0.346667f,  0.236667f,  0.321667f),
+                new float3(0.638333f,  0.323333f,  0.181667f),
+                new float3(0.258333f,  0.021667f,  0.420000f),
+                new float3(0.595000f, -0.021500f, -0.491667f),
+                new float3(0.484167f, -0.127500f,  0.694167f),
+                new float3(0.385000f, -0.187167f, -0.260000f),
+                new float3(0.756667f,  0.210000f, -0.016667f),
+                new float3(0.333333f,  0.068333f,  0.238333f),
+                new float3(1.238333f, -0.993333f,  1.038333f),
+                new float3(0.206333f,  0.255500f, -0.180833f),
+                new float3(0.245000f, -0.283333f,  0.066667f),
+                new float3(0.206333f,  0.255500f, -0.180833f),
+                new float3(0.182317f,  0.072492f,  0.518550f),
+                new float3(1.125000f,  0.500000f,  0.000000f),
+                new float3(0.573333f,  0.115000f,  0.190000f),
+                new float3(0.418833f,  0.901117f,  0.418333f),
+                new float3(0.800637f,  0.683333f,  0.231772f),
+                new float3(0.643105f,  0.856235f,  0.153051f),
+                new float3(0.781117f,  0.140627f, -0.330263f),
+                new float3(0.831667f,  0.508333f,  0.746667f),
+                new float3(0.000000f,  0.000000f,  0.000000f),
             };
+            typeof(SplitterPanel).GetProperty("DoubleBuffered", BindingFlags.NonPublic | 
+                BindingFlags.Instance).SetValue(ScreenDivider.Panel2, true, null);
         }
         public static float L(float3 p)
         {
@@ -345,7 +310,7 @@ namespace Accelerated_3D_fractal
             gpu.Launch(MarchRay, launchParam, dirDevPtr, pixDevPtr, camera, lightLocation, cols, minDist, maxDist, 1000,
                 bytes, width, iterations, side, seed, shift, shadowStrength, ambientOccStrength);
             Gpu.Copy(pixDevMem, pixels);
-            b = new Bitmap(width, height, width * 3,
+            b = new Bitmap(width, height, width * bytes,
                      PixelFormat.Format24bppRgb,
                      Marshal.UnsafeAddrOfPinnedArrayElement(pixels, 0));
             //for (int i = 0; i < Width * Height; i++)
@@ -442,7 +407,7 @@ namespace Accelerated_3D_fractal
             p = RotateZ(p, seed.y);
             p = FoldMenger(p);
             p = RotateX(p, seed.z);
-            p = A(p, shift);
+            p = TranslateSpace(p, shift);
             return p;
         }
         public static float Orbit(float3 p, int iterations, float side, float3 seed, float3 shift)
@@ -453,10 +418,10 @@ namespace Accelerated_3D_fractal
                 p = Transform(p, iterations, seed, shift);
                 if (WarpDist(DE(p, side), i, seed.x) * direction >= 0)
                 {
-                    return WarpDist(DE(p, side), i - 1, seed.x);
+                    return WarpDist(DE(p, side), i - 1, seed.x) * 6;
                 }
             }
-            return WarpDist(DE(p, side), iterations - 1, seed.x);
+            return WarpDist(DE(p, side), iterations - 1, seed.x) * 6;
         }
         public static float3 WarpSpace(float3 p, int iterations, float3 seed, float3 shift)
         {
@@ -592,137 +557,22 @@ namespace Accelerated_3D_fractal
             p.y = c * z.y - s * z.x;
             return p;
         }
-        private void Form1_Load(object sender, EventArgs e)
+        private void OnLoad(object sender, EventArgs e)
         {
             Init();
-            Invalidate();
+            ScreenDivider.Panel2.Invalidate();
         }
-        private void Form1_Paint(object sender, PaintEventArgs e)
-        {
-            if (directions.Length != 0)
-            {
-                MarchRays();
-                e.Graphics.DrawImage(b, 0, 0, width * granularity, height * granularity);
-                e.Graphics.DrawString(
-                string.Format(
-@"Preset: {0} 
-('D' to see next, 'A' to see previous, 'R' to reset)
-
-Scale: {1} 
-('>' to increase, '<' to decrease)
-
-Angle1: {2} 
-(')' to increase, '(' to decrease)
-
-Angle2: {3} 
-(']' to increase, '[' to decrease)
-
-Offset: ({4}, {5}, {6}) 
-(Arrow keys, Page Up, Page Down to change)
-
-Iterations: {7} 
-('+' to increase, '-' to decrease)
-
-Camera Location: ({8}, {9}, {10})
-(Scroll to move, click and drag to rotate)
-'Esc' to exit", levelName, 1 / seed.x, seed.y, seed.z, shift.x, shift.y, shift.z, iterations, camera.x, camera.y, camera.z),
-                     Font, Brushes.White, new Point(10, 10));
-            }
-        }
-        private void Form1_KeyDown(object sender, KeyEventArgs e)
-        {
-            switch (e.KeyCode)
-            {
-                case Keys.D1:
-                    seed.y += 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.D2:
-                    seed.y -= 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.D3:
-                    seed.z += 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.D4:
-                    seed.z -= 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.Up:
-                    shift.z += 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.Down:
-                    shift.z -= 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.Left:
-                    shift.x -= 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.Right:
-                    shift.x += 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.PageUp:
-                    shift.y += 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.PageDown:
-                    shift.y -= 0.05f;
-                    Name = "Custom";
-                    break;
-                case Keys.OemPeriod:
-                    seed.x = 1 / (1 / seed.x + 0.1f / iterations);
-                    Name = "Custom";
-                    break;
-                case Keys.Oemcomma:
-                    seed.x = 1 / (1 / seed.x - 0.1f / iterations);
-                    Name = "Custom";
-                    break;
-                case Keys.OemMinus:
-                    iterations--;
-                    break;
-                case Keys.Oemplus:
-                    iterations++;
-                    break;
-                case Keys.R:
-                    seed.y = 0;
-                    seed.z = 0;
-                    shift = new float3(0, 0, 0);
-                    seed.x = 1;
-                    iterations = 1;
-                    Name = "Custom";
-                    break;
-                case Keys.Space:
-                    levelnum = (levelnum + 1) % names.Length;
-                    levelName = names[levelnum];
-                    seed = seeds[levelnum];
-                    shift = offsets[levelnum];
-                    break;
-                case Keys.Escape:
-
-                default:
-                    return;
-            }
-            cameraBaseDist = L(camera);
-            //minDist = 1f / Width * cameraBaseDist;
-            if (minDist <= 0)
-                minDist = 1;
-            Invalidate();
-        }
-        private void Form1_MouseDown(object sender, MouseEventArgs e)
+        private void OnMouseDown(object sender, MouseEventArgs e)
         {
             mouseLocation = new int2(e.X, e.Y);
             isMouseDown = true;
         }
-        private void Form1_MouseUp(object sender, MouseEventArgs e)
+        private void OnMouseUp(object sender, MouseEventArgs e)
         {
             isMouseDown = false;
         }
         [GpuManaged]
-        private void Form1_MouseMove(object sender, MouseEventArgs e)
+        private void OnMouseMove(object sender, MouseEventArgs e)
         {
             if (isMouseDown)
             {
@@ -746,16 +596,16 @@ Camera Location: ({8}, {9}, {10})
                 x = D(x, L(x));
                 y = D(y, L(y));
                 z = D(z, L(z));
-                Invalidate();
+                ScreenDivider.Panel2.Invalidate();
             }
             mouseLocation = new int2(e.X, e.Y);
         }
-        private void Form1_MouseWheel(object sender, MouseEventArgs e)
+        private void OnMouseWheel(object sender, MouseEventArgs e)
         {
             if (mouseLocation.x >= 0 && mouseLocation.y >= 0 && mouseLocation.x < width * granularity && mouseLocation.y < height * granularity)
             {
                 camera = A(camera, M(directions[Index(mouseLocation.x / granularity, mouseLocation.y / granularity, width)], movementSize * e.Delta / 100));
-                Invalidate();
+                ScreenDivider.Panel2.Invalidate();
             }
         }
         public static float3 RotateVec(float3 p, float3 a, float t, float c, float s)
@@ -765,6 +615,135 @@ Camera Location: ({8}, {9}, {10})
                 t * d * a.x + p.x * c + s * (a.y * p.z - a.z * p.y),
                 t * d * a.y + p.y * c + s * (a.z * p.x - a.x * p.z),
                 t * d * a.z + p.z * c + s * (a.x * p.y - a.y * p.x));
+        }
+        private void IndexChanged(object sender, EventArgs e)
+        {
+            seed = seeds[LevelDropdown.SelectedIndex];
+            shift = offsets[LevelDropdown.SelectedIndex];
+            SetScaleControls();
+            SetAngle1Controls();
+            SetAngle2Controls();
+            SetOffsetControls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+
+        private void OnDraw(object sender, PaintEventArgs e)
+        {
+            if (directions.Length != 0)
+            {
+                MarchRays();
+                e.Graphics.DrawImage(b, 0, 0, width * granularity, height * granularity);
+            }
+        }
+        private void ScaleSlider_Scroll(object sender, EventArgs e)
+        {
+            seed.x = ScaleSlider.Value * 2.0f / ScaleSlider.Maximum;
+            SetScaleControls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void ScaleText_TextChanged(object sender, EventArgs e)
+        {
+            if (!float.TryParse(ScaleText.Text, out float scaleparsed))
+            {
+                SetScaleControls();
+                return;
+            }
+            seed.x = scaleparsed;
+            SetScaleControls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void Angle1Slider_Scroll(object sender, EventArgs e)
+        {
+            seed.y = (float)(Angle1Slider.Value * Math.PI / Angle1Slider.Maximum);
+            SetAngle1Controls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void Angle1Text_TextChanged(object sender, EventArgs e)
+        {
+            if (!float.TryParse(Angle1Text.Text, out float angle1parsed))
+            {
+                SetAngle1Controls();
+                return;
+            }
+            seed.y = angle1parsed;
+            SetAngle1Controls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void Angle2Slider_Scroll(object sender, EventArgs e)
+        {
+            seed.z = (float)(Angle2Slider.Value * Math.PI / Angle2Slider.Maximum);
+            SetAngle2Controls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void Angle2Text_TextChanged(object sender, EventArgs e)
+        {
+            if (!float.TryParse(Angle2Text.Text, out float angle2parsed))
+            {
+                SetAngle2Controls();
+                return;
+            }
+            seed.y = angle2parsed;
+            SetAngle2Controls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void OffsetXText_TextChanged(object sender, EventArgs e)
+        {
+            if (!float.TryParse(OffsetXText.Text, out float offsetxparsed))
+            {
+                SetOffsetControls();
+                return;
+            }
+            shift.x = offsetxparsed;
+            SetOffsetControls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void OffsetYText_TextChanged(object sender, EventArgs e)
+        {
+            if (!float.TryParse(OffsetYText.Text, out float offsetyparsed))
+            {
+                SetOffsetControls();
+                return;
+            }
+            shift.y = offsetyparsed;
+            SetOffsetControls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void OffsetZText_TextChanged(object sender, EventArgs e)
+        {
+            if (!float.TryParse(OffsetZText.Text, out float offsetzparsed))
+            {
+                SetOffsetControls();
+                return;
+            }
+            shift.z = offsetzparsed;
+            SetOffsetControls();
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void IterationsSlider_Scroll(object sender, EventArgs e)
+        {
+            iterations = IterationsSlider.Value;
+            ScreenDivider.Panel2.Invalidate();
+        }
+        private void SetScaleControls()
+        {
+            ScaleText.Text = seed.x.ToString("0.000");
+            ScaleSlider.Value = Math.Max(ScaleSlider.Minimum, Math.Min(ScaleSlider.Maximum, (int)(ScaleSlider.Maximum * seed.x / 2)));
+        }
+        private void SetAngle1Controls()
+        {
+            Angle1Text.Text = seed.y.ToString("0.00");
+            Angle1Slider.Value = Math.Max(Angle1Slider.Minimum, Math.Min(Angle1Slider.Maximum, (int)(Angle1Slider.Maximum / Math.PI * seed.y)));
+        }
+        private void SetAngle2Controls()
+        {
+            Angle2Text.Text = seed.z.ToString("0.00");
+            Angle2Slider.Value = Math.Max(Angle2Slider.Minimum, Math.Min(Angle2Slider.Maximum, (int)(Angle2Slider.Maximum / Math.PI * seed.z)));
+        }
+        private void SetOffsetControls()
+        {
+            OffsetXText.Text = shift.x.ToString("0.000");
+            OffsetYText.Text = shift.y.ToString("0.000");
+            OffsetZText.Text = shift.z.ToString("0.000");
         }
     }
 }

@@ -65,3 +65,19 @@ H:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debu
 H:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.CopyComplete
 H:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.exe
 H:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.pdb
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Accelerated 3D fractal.exe.config
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Accelerated 3D fractal.exe
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Accelerated 3D fractal.pdb
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.dll
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.IL.dll
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.Parallel.dll
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\FSharp.Core.dll
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.xml
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csprojAssemblyReference.cache
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated_3D_fractal.Form1.resources
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated_3D_fractal.Properties.Resources.resources
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.GenerateResource.cache
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.CoreCompileInputs.cache
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.CopyComplete
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.exe
+D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.pdb
