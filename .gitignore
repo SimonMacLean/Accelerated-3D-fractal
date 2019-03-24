@@ -21,3 +21,6 @@ $RECYCLE.BIN/
 # =========================
 # Operating System Files
 # =========================
+/Accelerated 3D fractal/.vs
+/Accelerated 3D fractal/Accelerated 3D fractal/bin
+/Accelerated 3D fractal/Accelerated 3D fractal/obj
