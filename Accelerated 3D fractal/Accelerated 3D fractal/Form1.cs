@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Alea;
 using Alea.CSharp;
-using Alea.FSharp;
 
 namespace Accelerated_3D_fractal
 {
@@ -106,7 +104,7 @@ namespace Accelerated_3D_fractal
                 new float3(1.6516888f, 0.026083898f, -0.7996324f),
                 new float3(1.77746f, -1.66f, 0.0707307f),
                 new float3(2.13f, -1.77f, -1.62f),
-                new float3(1, 0, 0)
+                new float3(1, 0.5f, 0.5f)
             };
             offsets = new[]{
                 new float3(0.353333f,  0.458333f, -0.081667f),
@@ -137,6 +135,10 @@ namespace Accelerated_3D_fractal
             };
             typeof(SplitterPanel).GetProperty("DoubleBuffered", BindingFlags.NonPublic | 
                 BindingFlags.Instance).SetValue(ScreenDivider.Panel2, true, null);
+
+            // Starting image values
+            LevelDropdown.SelectedIndex = LevelDropdown.Items.Count - 1;    // Custom
+            IterationsSlider.Value = iterations = 5;
         }
         public static float L(float3 p)
         {
