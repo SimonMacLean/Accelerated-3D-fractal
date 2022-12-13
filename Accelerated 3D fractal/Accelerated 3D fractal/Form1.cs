@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -11,7 +10,7 @@ using Alea.FSharp;
 
 namespace Accelerated_3D_fractal
 {
-    public partial class Form1 : Form
+    public sealed partial class Form1 : Form
     {
         private Bitmap b;
         private byte[] pixels;
@@ -21,36 +20,35 @@ namespace Accelerated_3D_fractal
         private DeviceMemory<float3> dirDevMem;
         private deviceptr<float3> dirDevPtr;
         private float3 camera;
-        private float3 center;
         private float3 lightLocation;
         private float3 x;
         private float3 y;
         private float3 z;
-        private float baseMovementSize = 1f;
+        private const float BaseMovementSize = 1f;
         private float movementSize;
         private float3 seed = new float3(1, 0, 0);
         private float3 shift = new float3(0, 0, 0);
-        private float2 cols = new float2(0.5f, 0.8f);
+        private readonly float2 cols = new float2(0.5f, 0.8f);
         private float3[] seeds;
         private float3[] offsets;
         private int2 mouseLocation;
-        private float mouseSensitivity = 0.01f;
-        private bool isMouseDown = false;
-        private float focalLength = -2;
-        private float minDist = 0.0001f;
-        private float maxDist = 100;
-        private int granularity = 1;
-        private int iterations = 0;
-        private float side = 1;
-        private int width;
-        private int height;
-        private int bytes = 3;
-        private float ambientOccStrength = 0.05f;
-        private float shadowStrength = 8;
-        private readonly dim3 BlockSize = new dim3(32, 32);
-        private dim3 GridSize;
+        private const float MouseSensitivity = 0.01f;
+        private bool isMouseDown;
+        private const float FocalLength = -2;
+        private const float MinDist = 0.0001f;
+        private const float MaxDist = 100;
+        private const int Granularity = 1;
+        private int iterations;
+        private const float Side = 1;
+        private int drawWidth;
+        private int drawHeight;
+        private const int Bytes = 3;
+        private const float AmbientOccStrength = 0.05f;
+        private const float ShadowStrength = 8;
+        private readonly dim3 blockSize = new dim3(32, 32);
+        private dim3 gridSize;
         private LaunchParam launchParam;
-        private Gpu gpu;
+        private readonly Gpu gpu;
         public Form1()
         {
             InitializeComponent();
@@ -60,23 +58,22 @@ namespace Accelerated_3D_fractal
         public void Init()
         {
             Font = new Font(FontFamily.GenericMonospace, 10);
-            width = ScreenDivider.Panel2.ClientSize.Width / granularity / 4 * 4;
-            height = ScreenDivider.Panel2.ClientSize.Height / granularity / 4 * 4;
-            directions = new float3[width * height];
+            drawWidth = ScreenDivider.Panel2.ClientSize.Width / Granularity / 4 * 4;
+            drawHeight = ScreenDivider.Panel2.ClientSize.Height / Granularity / 4 * 4;
+            directions = new float3[drawWidth * drawHeight];
             dirDevMem = gpu.AllocateDevice(directions);
             dirDevPtr = dirDevMem.Ptr;
-            pixels = new byte[width * height * bytes];
+            pixels = new byte[drawWidth * drawHeight * Bytes];
             pixDevMem = gpu.AllocateDevice(pixels);
             pixDevPtr = pixDevMem.Ptr;
-            b = new Bitmap(width, height, width * bytes,
+            b = new Bitmap(drawWidth, drawHeight, drawWidth * Bytes,
                      PixelFormat.Format24bppRgb,
                      Marshal.UnsafeAddrOfPinnedArrayElement(pixels, 0));
-            center = new float3(0, 0, 0);
             camera = new float3(3, 0, 0);
             lightLocation = new float3(20, 20, 20);
-            GridSize = new dim3(width / BlockSize.x, height / BlockSize.y);
-            launchParam = new LaunchParam(GridSize, BlockSize);
-            movementSize = baseMovementSize;
+            gridSize = new dim3(drawWidth / blockSize.x, drawHeight / blockSize.y);
+            launchParam = new LaunchParam(gridSize, blockSize);
+            movementSize = BaseMovementSize;
             GetDirections();
             x = new float3(0, 0, 1);
             y = new float3(0, 1, 0);
@@ -136,7 +133,8 @@ namespace Accelerated_3D_fractal
                 new float3(0.000000f,  0.000000f,  0.000000f),
             };
             typeof(SplitterPanel).GetProperty("DoubleBuffered", BindingFlags.NonPublic | 
-                BindingFlags.Instance).SetValue(ScreenDivider.Panel2, true, null);
+                BindingFlags.Instance)
+                ?.SetValue(ScreenDivider.Panel2, true, null);
         }
         public static float L(float3 p)
         {
@@ -213,22 +211,22 @@ namespace Accelerated_3D_fractal
         {
             return y * width + x;
         }
-        public void GetDirection(deviceptr<float3> directions, float focalLength, float width, float height)
+        public void GetDirection(deviceptr<float3> directionsPtr, float focalLength, float width, float height)
         {
             int i = blockIdx.x * blockDim.x + threadIdx.x;
             int j = blockIdx.y * blockDim.y + threadIdx.y;
             int h = Index(i, (int)height - 1 - j, (int)width);
             float3 p = new float3(focalLength, (j - height / 2) / height, (i - width / 2) / height);
             p = D(p, L(p));
-            directions[h] = p;
+            directionsPtr[h] = p;
         }
-        public void RotateDirection(deviceptr<float3> directions, float3 a, float t, float c, float s, int width, int height)
+        public void RotateDirection(deviceptr<float3> directionsPtr, float3 a, float t, float c, float s, int width, int height)
         {
             int i = blockIdx.x * blockDim.x + threadIdx.x;
             int j = blockIdx.y * blockDim.y + threadIdx.y;
             int h = Index(i, height - 1 - j, width);
-            directions[h] = RotateVec(directions[h], a, t, c, s);
-            directions[h] = D(directions[h], L(directions[h]));
+            directionsPtr[h] = RotateVec(directionsPtr[h], a, t, c, s);
+            directionsPtr[h] = D(directionsPtr[h], L(directionsPtr[h]));
         }
         public void GetColor(deviceptr<Color> colors)
         {
@@ -236,23 +234,23 @@ namespace Accelerated_3D_fractal
             colors[i] = Color.FromArgb(i, i, i);
         }
         public static void MarchRay(deviceptr<float3> directions, deviceptr<byte> pixelValues, float3 camera,
-            float3 light, float2 cols, float minDist, float maxDist, int maxstep, int bytes, int width, int iterations,
+            float3 light, float2 cols, float minDist, float maxDist, int maxStep, int bytes, int width, int iterations,
             float side, float3 seed, float3 shift, float shadowStrength, float ambientOccStrength)
         {
             int i = blockIdx.x * blockDim.x + threadIdx.x;
             int j = blockIdx.y * blockDim.y + threadIdx.y;
             int h = Index(i, j, width);
             float3 p = camera;
-            int stepnum = 0;
+            int stepNum = 0;
             float dist = minDist + 1;
             float totalDist = 0;
             while (totalDist < maxDist && dist > minDist)
             {
-                dist = ScaledDE(p, iterations, side, seed, shift);
+                dist = ScaledDe(p, iterations, side, seed, shift);
                 p = A(p, M(directions[h], dist));
                 totalDist += dist;
-                stepnum++;
-                if (stepnum == maxstep)
+                stepNum++;
+                if (stepNum == maxStep)
                     break;
             }
             float brightness = 0;
@@ -261,15 +259,14 @@ namespace Accelerated_3D_fractal
                 float3 off = S(light, p);
                 float lightVectorLength = L(off);
                 off = D(off, lightVectorLength);
-                float shadow = 1;
                 float diffuseCalculated = 0;
                 float normalAngle = O(off, Normal(p, iterations, side, seed, shift, minDist));
                 if (normalAngle > 0)
-                {
-                    shadow = NewSoftShadow(p, off, shadowStrength, iterations, side, seed, shift, minDist, lightVectorLength, 0.01f);
-                    diffuseCalculated = DeviceFunction.Max(cols.y * shadow * normalAngle, 0);
-                }
-                brightness += diffuseCalculated + cols.x / (1 + stepnum * ambientOccStrength);
+                    diffuseCalculated =
+                        DeviceFunction.Max(
+                            cols.y * NewSoftShadow(p, off, shadowStrength, iterations, side, seed, shift, minDist,
+                                lightVectorLength, 0.01f) * normalAngle, 0);
+                brightness += diffuseCalculated + cols.x / (1 + stepNum * ambientOccStrength);
                 brightness = DeviceFunction.Min(DeviceFunction.Max(brightness, 0), 1);
                 float col = Orbit(p, iterations, side, seed, shift);
                 pixelValues[h * 3] = (byte)(Blue(col) * brightness * byte.MaxValue);
@@ -301,16 +298,16 @@ namespace Accelerated_3D_fractal
         }
         public void GetDirections()
         {
-            gpu.Launch(GetDirection, launchParam, dirDevPtr, focalLength, (float)width, (float)height);
+            gpu.Launch(GetDirection, launchParam, dirDevPtr, FocalLength, (float)drawWidth, (float)drawHeight);
             Gpu.Copy(dirDevMem, directions);
         }
         [GpuManaged]
         public void MarchRays()
         {
-            gpu.Launch(MarchRay, launchParam, dirDevPtr, pixDevPtr, camera, lightLocation, cols, minDist, maxDist, 1000,
-                bytes, width, iterations, side, seed, shift, shadowStrength, ambientOccStrength);
+            gpu.Launch(MarchRay, launchParam, dirDevPtr, pixDevPtr, camera, lightLocation, cols, MinDist, MaxDist, 1000,
+                Bytes, drawWidth, iterations, Side, seed, shift, ShadowStrength, AmbientOccStrength);
             Gpu.Copy(pixDevMem, pixels);
-            b = new Bitmap(width, height, width * bytes,
+            b = new Bitmap(drawWidth, drawHeight, drawWidth * Bytes,
                      PixelFormat.Format24bppRgb,
                      Marshal.UnsafeAddrOfPinnedArrayElement(pixels, 0));
             //for (int i = 0; i < Width * Height; i++)
@@ -322,25 +319,18 @@ namespace Accelerated_3D_fractal
         public static float OldSoftShadow(float3 p, float3 d, float shadowStrength, int iterations, float side, float3 seed, float3 shift, float minDist, float maxDist, float minAngle)
         {
             float k = 1;
-            float dist = minDist;
-            float angle = 1;
             float totalDist = minDist / 100;
             float3 marchedPoint = p;
             while (totalDist < maxDist)
             {
-                dist = ScaledDE(marchedPoint, iterations, side, seed, shift);
+                float dist = ScaledDe(marchedPoint, iterations, side, seed, shift);
                 if (dist == 0)
                     dist = minDist;
                 marchedPoint = A(marchedPoint, M(d, dist));
                 totalDist += dist;
-                angle = shadowStrength * dist / totalDist;
-                k = DeviceFunction.Min(k, angle);
-                if (dist < 0)
+                k = DeviceFunction.Min(k, shadowStrength * dist / totalDist);
+                if (dist < 0 || k < minAngle)
                     return 0;
-                if (k < minAngle)
-                {
-                    return 0;
-                }
             }
             return k;
         }
@@ -348,17 +338,13 @@ namespace Accelerated_3D_fractal
         {
             float darkness = 1;
             float prevDist = float.MaxValue;
-            float dist = minDist / 100;
-            float angle = 1;
             float totalDist = minDist;
-            float oldNewIntDist = 0;
-            float legLength = 0;
             while (totalDist < maxDist)
             {
-                dist = ScaledDE(A(p, M(d, totalDist)), iterations, side, seed, shift);
-                oldNewIntDist = dist * dist / (2 * prevDist);
-                legLength = DeviceFunction.Sqrt(dist * dist - oldNewIntDist * oldNewIntDist);
-                angle = shadowStrength * legLength / DeviceFunction.Max(0, totalDist - oldNewIntDist);
+                float dist = ScaledDe(A(p, M(d, totalDist)), iterations, side, seed, shift);
+                float oldNewIntDist = dist * dist / (2 * prevDist);
+                float legLength = DeviceFunction.Sqrt(dist * dist - oldNewIntDist * oldNewIntDist);
+                float angle = shadowStrength * legLength / DeviceFunction.Max(0, totalDist - oldNewIntDist);
                 darkness = DeviceFunction.Min(darkness, angle);
                 prevDist = dist;
                 totalDist += dist;
@@ -374,27 +360,27 @@ namespace Accelerated_3D_fractal
         public static float3 Normal(float3 p, int iterations, float side, float3 seed, float3 shift, float epsilon)
         {
             float3 scaled = new float3(
-                ScaledDE(new float3(p.x + epsilon, p.y, p.z), iterations, side, seed, shift) -
-                ScaledDE(new float3(p.x - epsilon, p.y, p.z), iterations, side, seed, shift),
-                ScaledDE(new float3(p.x, p.y + epsilon, p.z), iterations, side, seed, shift) -
-                ScaledDE(new float3(p.x, p.y - epsilon, p.z), iterations, side, seed, shift),
-                ScaledDE(new float3(p.x, p.y, p.z + epsilon), iterations, side, seed, shift) -
-                ScaledDE(new float3(p.x, p.y, p.z - epsilon), iterations, side, seed, shift));
+                ScaledDe(new float3(p.x + epsilon, p.y, p.z), iterations, side, seed, shift) -
+                ScaledDe(new float3(p.x - epsilon, p.y, p.z), iterations, side, seed, shift),
+                ScaledDe(new float3(p.x, p.y + epsilon, p.z), iterations, side, seed, shift) -
+                ScaledDe(new float3(p.x, p.y - epsilon, p.z), iterations, side, seed, shift),
+                ScaledDe(new float3(p.x, p.y, p.z + epsilon), iterations, side, seed, shift) -
+                ScaledDe(new float3(p.x, p.y, p.z - epsilon), iterations, side, seed, shift));
             return D(scaled, L(scaled));
         }
-        public static float DE(float3 p, float side)
+        public static float De(float3 p, float side)
         {
-            return CubeDE(p, new float3(0, 0, 0), side);
+            return CubeDe(p, new float3(0, 0, 0), side);
         }
-        public static float ScaledDE(float3 p, int iterations, float side, float3 seed, float3 shift)
+        public static float ScaledDe(float3 p, int iterations, float side, float3 seed, float3 shift)
         {
-            return WarpDist(DE(WarpSpace(p, iterations, seed, shift), side), iterations, seed.x);
+            return WarpDist(De(WarpSpace(p, iterations, seed, shift), side), iterations, seed.x);
         }
-        public static float SphereDE(float3 p, float3 c, float di)
+        public static float SphereDe(float3 p, float3 c, float di)
         {
             return L(S(p, c)) - di / 2;
         }
-        public static float CubeDE(float3 p, float3 c, float di)
+        public static float CubeDe(float3 p, float3 c, float di)
         {
             float3 o = S(p, c);
             float d = DeviceFunction.Max(DeviceFunction.Abs(o.x), DeviceFunction.Max(DeviceFunction.Abs(o.y), DeviceFunction.Abs(o.z)));
@@ -412,16 +398,16 @@ namespace Accelerated_3D_fractal
         }
         public static float Orbit(float3 p, int iterations, float side, float3 seed, float3 shift)
         {
-            float direction = ScaledDE(p, 1, side, seed, shift);
+            float direction = ScaledDe(p, 1, side, seed, shift);
             for (int i = 0; i < iterations; i++)
             {
                 p = Transform(p, iterations, seed, shift);
-                if (WarpDist(DE(p, side), i, seed.x) * direction >= 0)
+                if (WarpDist(De(p, side), i, seed.x) * direction >= 0)
                 {
-                    return WarpDist(DE(p, side), i - 1, seed.x) * 6;
+                    return WarpDist(De(p, side), i - 1, seed.x) * 6;
                 }
             }
-            return WarpDist(DE(p, side), iterations - 1, seed.x) * 6;
+            return WarpDist(De(p, side), iterations - 1, seed.x) * 6;
         }
         public static float3 WarpSpace(float3 p, int iterations, float3 seed, float3 shift)
         {
@@ -464,10 +450,7 @@ namespace Accelerated_3D_fractal
         }
         public static float3 FoldSpace(float3 p, float3 n)
         {
-            if (O(p, n) >= 0)
-                return p;
-            else
-                return S(p, D(M(M(n, 2), O(p, n)), O(n, n)));
+            return O(p, n) >= 0 ? p : S(p, D(M(M(n, 2), O(p, n)), O(n, n)));
         }
         public static float3 FoldMenger(float3 z)
         {
@@ -576,19 +559,18 @@ namespace Accelerated_3D_fractal
         {
             if (isMouseDown)
             {
-                float2 offset = new float2((e.X - mouseLocation.x) * mouseSensitivity, (e.Y - mouseLocation.y) * mouseSensitivity);
+                float2 offset = new float2((e.X - mouseLocation.x) * MouseSensitivity, (e.Y - mouseLocation.y) * MouseSensitivity);
                 float c1 = DeviceFunction.Cos(offset.x);
                 float s1 = DeviceFunction.Sin(offset.x);
                 float t1 = 1 - c1;
                 float c2 = DeviceFunction.Cos(offset.y);
                 float s2 = DeviceFunction.Sin(offset.y);
                 float t2 = 1 - c2;
-                float camDist = L(camera);
-                gpu.Launch(RotateDirection, launchParam, dirDevPtr, y, t1, c1, s1, width, height);
+                gpu.Launch(RotateDirection, launchParam, dirDevPtr, y, t1, c1, s1, drawWidth, drawHeight);
                 x = RotateVec(x, y, t1, c1, s1);
                 z = RotateVec(z, y, t1, c1, s1);
                 camera = RotateVec(camera, y, t1, c1, s1);
-                gpu.Launch(RotateDirection, launchParam, dirDevPtr, x, t2, c2, s2, width, height);
+                gpu.Launch(RotateDirection, launchParam, dirDevPtr, x, t2, c2, s2, drawWidth, drawHeight);
                 y = RotateVec(y, x, t2, c2, s2);
                 z = RotateVec(z, x, t2, c2, s2);
                 camera = RotateVec(camera, x, t2, c2, s2);
@@ -602,11 +584,10 @@ namespace Accelerated_3D_fractal
         }
         private void OnMouseWheel(object sender, MouseEventArgs e)
         {
-            if (mouseLocation.x >= 0 && mouseLocation.y >= 0 && mouseLocation.x < width * granularity && mouseLocation.y < height * granularity)
-            {
-                camera = A(camera, M(directions[Index(mouseLocation.x / granularity, mouseLocation.y / granularity, width)], movementSize * e.Delta / 100));
-                ScreenDivider.Panel2.Invalidate();
-            }
+            if (mouseLocation.x < 0 || mouseLocation.y < 0 || mouseLocation.x >= drawWidth * Granularity ||
+                mouseLocation.y >= drawHeight * Granularity) return;
+            camera = A(camera, M(directions[Index(mouseLocation.x / Granularity, mouseLocation.y / Granularity, drawWidth)], movementSize * e.Delta / 100));
+            ScreenDivider.Panel2.Invalidate();
         }
         public static float3 RotateVec(float3 p, float3 a, float t, float c, float s)
         {
@@ -629,11 +610,9 @@ namespace Accelerated_3D_fractal
 
         private void OnDraw(object sender, PaintEventArgs e)
         {
-            if (directions.Length != 0)
-            {
-                MarchRays();
-                e.Graphics.DrawImage(b, 0, 0, width * granularity, height * granularity);
-            }
+            if (directions.Length == 0) return;
+            MarchRays();
+            e.Graphics.DrawImage(b, 0, 0, drawWidth * Granularity, drawHeight * Granularity);
         }
         private void ScaleSlider_Scroll(object sender, EventArgs e)
         {
@@ -643,12 +622,12 @@ namespace Accelerated_3D_fractal
         }
         private void ScaleText_TextChanged(object sender, EventArgs e)
         {
-            if (!float.TryParse(ScaleText.Text, out float scaleparsed))
+            if (!float.TryParse(ScaleText.Text, out float scaleParsed))
             {
                 SetScaleControls();
                 return;
             }
-            seed.x = scaleparsed;
+            seed.x = scaleParsed;
             SetScaleControls();
             ScreenDivider.Panel2.Invalidate();
         }
@@ -660,12 +639,12 @@ namespace Accelerated_3D_fractal
         }
         private void Angle1Text_TextChanged(object sender, EventArgs e)
         {
-            if (!float.TryParse(Angle1Text.Text, out float angle1parsed))
+            if (!float.TryParse(Angle1Text.Text, out float angle1Parsed))
             {
                 SetAngle1Controls();
                 return;
             }
-            seed.y = angle1parsed;
+            seed.y = angle1Parsed;
             SetAngle1Controls();
             ScreenDivider.Panel2.Invalidate();
         }
@@ -677,45 +656,45 @@ namespace Accelerated_3D_fractal
         }
         private void Angle2Text_TextChanged(object sender, EventArgs e)
         {
-            if (!float.TryParse(Angle2Text.Text, out float angle2parsed))
+            if (!float.TryParse(Angle2Text.Text, out float angle2Parsed))
             {
                 SetAngle2Controls();
                 return;
             }
-            seed.y = angle2parsed;
+            seed.y = angle2Parsed;
             SetAngle2Controls();
             ScreenDivider.Panel2.Invalidate();
         }
         private void OffsetXText_TextChanged(object sender, EventArgs e)
         {
-            if (!float.TryParse(OffsetXText.Text, out float offsetxparsed))
+            if (!float.TryParse(OffsetXText.Text, out float offsetXParsed))
             {
                 SetOffsetControls();
                 return;
             }
-            shift.x = offsetxparsed;
+            shift.x = offsetXParsed;
             SetOffsetControls();
             ScreenDivider.Panel2.Invalidate();
         }
         private void OffsetYText_TextChanged(object sender, EventArgs e)
         {
-            if (!float.TryParse(OffsetYText.Text, out float offsetyparsed))
+            if (!float.TryParse(OffsetYText.Text, out float offsetYParsed))
             {
                 SetOffsetControls();
                 return;
             }
-            shift.y = offsetyparsed;
+            shift.y = offsetYParsed;
             SetOffsetControls();
             ScreenDivider.Panel2.Invalidate();
         }
         private void OffsetZText_TextChanged(object sender, EventArgs e)
         {
-            if (!float.TryParse(OffsetZText.Text, out float offsetzparsed))
+            if (!float.TryParse(OffsetZText.Text, out float offsetZParsed))
             {
                 SetOffsetControls();
                 return;
             }
-            shift.z = offsetzparsed;
+            shift.z = offsetZParsed;
             SetOffsetControls();
             ScreenDivider.Panel2.Invalidate();
         }

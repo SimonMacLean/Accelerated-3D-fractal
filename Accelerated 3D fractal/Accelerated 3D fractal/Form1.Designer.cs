@@ -1,6 +1,6 @@
 ﻿namespace Accelerated_3D_fractal
 {
-    partial class Form1
+    sealed partial class Form1
     {
         /// <summary>
         /// Required designer variable.
@@ -29,6 +29,11 @@
         private void InitializeComponent()
         {
             this.ScreenDivider = new System.Windows.Forms.SplitContainer();
+            this.OffsetZLabel = new System.Windows.Forms.Label();
+            this.OffsetYLabel = new System.Windows.Forms.Label();
+            this.OffsetXLabel = new System.Windows.Forms.Label();
+            this.OffsetZText = new System.Windows.Forms.TextBox();
+            this.OffsetYText = new System.Windows.Forms.TextBox();
             this.MaxIterationsLabel = new System.Windows.Forms.Label();
             this.MinIterationsLabel = new System.Windows.Forms.Label();
             this.IterationsSlider = new System.Windows.Forms.TrackBar();
@@ -52,11 +57,6 @@
             this.ScaleLabel = new System.Windows.Forms.Label();
             this.LevelDropdown = new System.Windows.Forms.ComboBox();
             this.PresetLabel = new System.Windows.Forms.Label();
-            this.OffsetYText = new System.Windows.Forms.TextBox();
-            this.OffsetZText = new System.Windows.Forms.TextBox();
-            this.OffsetXLabel = new System.Windows.Forms.Label();
-            this.OffsetYLabel = new System.Windows.Forms.Label();
-            this.OffsetZLabel = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.ScreenDivider)).BeginInit();
             this.ScreenDivider.Panel1.SuspendLayout();
             this.ScreenDivider.SuspendLayout();
@@ -114,12 +114,59 @@
             this.ScreenDivider.SplitterDistance = 326;
             this.ScreenDivider.TabIndex = 0;
             // 
+            // OffsetZLabel
+            // 
+            this.OffsetZLabel.AutoSize = true;
+            this.OffsetZLabel.Location = new System.Drawing.Point(41, 398);
+            this.OffsetZLabel.Name = "OffsetZLabel";
+            this.OffsetZLabel.Size = new System.Drawing.Size(18, 16);
+            this.OffsetZLabel.TabIndex = 32;
+            this.OffsetZLabel.Text = "Z:";
+            // 
+            // OffsetYLabel
+            // 
+            this.OffsetYLabel.AutoSize = true;
+            this.OffsetYLabel.Location = new System.Drawing.Point(41, 370);
+            this.OffsetYLabel.Name = "OffsetYLabel";
+            this.OffsetYLabel.Size = new System.Drawing.Size(19, 16);
+            this.OffsetYLabel.TabIndex = 31;
+            this.OffsetYLabel.Text = "Y:";
+            // 
+            // OffsetXLabel
+            // 
+            this.OffsetXLabel.AutoSize = true;
+            this.OffsetXLabel.Location = new System.Drawing.Point(41, 342);
+            this.OffsetXLabel.Name = "OffsetXLabel";
+            this.OffsetXLabel.Size = new System.Drawing.Size(18, 16);
+            this.OffsetXLabel.TabIndex = 30;
+            this.OffsetXLabel.Text = "X:";
+            // 
+            // OffsetZText
+            // 
+            this.OffsetZText.Location = new System.Drawing.Point(68, 395);
+            this.OffsetZText.Name = "OffsetZText";
+            this.OffsetZText.Size = new System.Drawing.Size(68, 22);
+            this.OffsetZText.TabIndex = 29;
+            this.OffsetZText.Text = "0.000";
+            this.OffsetZText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.OffsetZText.TextChanged += new System.EventHandler(this.OffsetZText_TextChanged);
+            // 
+            // OffsetYText
+            // 
+            this.OffsetYText.Location = new System.Drawing.Point(68, 367);
+            this.OffsetYText.Name = "OffsetYText";
+            this.OffsetYText.Size = new System.Drawing.Size(68, 22);
+            this.OffsetYText.TabIndex = 28;
+            this.OffsetYText.Text = "0.000";
+            this.OffsetYText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.OffsetYText.TextChanged += new System.EventHandler(this.OffsetYText_TextChanged);
+            // 
             // MaxIterationsLabel
             // 
             this.MaxIterationsLabel.AutoSize = true;
             this.MaxIterationsLabel.Location = new System.Drawing.Point(277, 483);
             this.MaxIterationsLabel.Name = "MaxIterationsLabel";
-            this.MaxIterationsLabel.Size = new System.Drawing.Size(24, 17);
+            this.MaxIterationsLabel.Size = new System.Drawing.Size(21, 16);
             this.MaxIterationsLabel.TabIndex = 27;
             this.MaxIterationsLabel.Text = "20";
             // 
@@ -128,7 +175,7 @@
             this.MinIterationsLabel.AutoSize = true;
             this.MinIterationsLabel.Location = new System.Drawing.Point(17, 483);
             this.MinIterationsLabel.Name = "MinIterationsLabel";
-            this.MinIterationsLabel.Size = new System.Drawing.Size(16, 17);
+            this.MinIterationsLabel.Size = new System.Drawing.Size(14, 16);
             this.MinIterationsLabel.TabIndex = 25;
             this.MinIterationsLabel.Text = "0";
             // 
@@ -146,7 +193,7 @@
             this.IterationsLabel.AutoSize = true;
             this.IterationsLabel.Location = new System.Drawing.Point(12, 429);
             this.IterationsLabel.Name = "IterationsLabel";
-            this.IterationsLabel.Size = new System.Drawing.Size(70, 17);
+            this.IterationsLabel.Size = new System.Drawing.Size(64, 16);
             this.IterationsLabel.TabIndex = 23;
             this.IterationsLabel.Text = "Iterations:";
             // 
@@ -165,7 +212,7 @@
             this.OffsetLabel.AutoSize = true;
             this.OffsetLabel.Location = new System.Drawing.Point(12, 318);
             this.OffsetLabel.Name = "OffsetLabel";
-            this.OffsetLabel.Size = new System.Drawing.Size(50, 17);
+            this.OffsetLabel.Size = new System.Drawing.Size(44, 16);
             this.OffsetLabel.TabIndex = 18;
             this.OffsetLabel.Text = "Offset:";
             // 
@@ -174,7 +221,7 @@
             this.ScaleMaxLabel.AutoSize = true;
             this.ScaleMaxLabel.Location = new System.Drawing.Point(258, 114);
             this.ScaleMaxLabel.Name = "ScaleMaxLabel";
-            this.ScaleMaxLabel.Size = new System.Drawing.Size(44, 17);
+            this.ScaleMaxLabel.Size = new System.Drawing.Size(38, 16);
             this.ScaleMaxLabel.TabIndex = 7;
             this.ScaleMaxLabel.Text = "2.000";
             // 
@@ -183,7 +230,7 @@
             this.ScaleMinLabel.AutoSize = true;
             this.ScaleMinLabel.Location = new System.Drawing.Point(9, 114);
             this.ScaleMinLabel.Name = "ScaleMinLabel";
-            this.ScaleMinLabel.Size = new System.Drawing.Size(44, 17);
+            this.ScaleMinLabel.Size = new System.Drawing.Size(38, 16);
             this.ScaleMinLabel.TabIndex = 5;
             this.ScaleMinLabel.Text = "0.000";
             // 
@@ -222,7 +269,7 @@
             this.MaxAngle2Label.AutoSize = true;
             this.MaxAngle2Label.Location = new System.Drawing.Point(286, 271);
             this.MaxAngle2Label.Name = "MaxAngle2Label";
-            this.MaxAngle2Label.Size = new System.Drawing.Size(16, 17);
+            this.MaxAngle2Label.Size = new System.Drawing.Size(15, 16);
             this.MaxAngle2Label.TabIndex = 17;
             this.MaxAngle2Label.Text = "π";
             // 
@@ -231,7 +278,7 @@
             this.MinAngle2Label.AutoSize = true;
             this.MinAngle2Label.Location = new System.Drawing.Point(13, 271);
             this.MinAngle2Label.Name = "MinAngle2Label";
-            this.MinAngle2Label.Size = new System.Drawing.Size(21, 17);
+            this.MinAngle2Label.Size = new System.Drawing.Size(19, 16);
             this.MinAngle2Label.TabIndex = 15;
             this.MinAngle2Label.Text = "-π";
             // 
@@ -251,7 +298,7 @@
             this.Angle2Label.AutoSize = true;
             this.Angle2Label.Location = new System.Drawing.Point(9, 223);
             this.Angle2Label.Name = "Angle2Label";
-            this.Angle2Label.Size = new System.Drawing.Size(60, 17);
+            this.Angle2Label.Size = new System.Drawing.Size(55, 16);
             this.Angle2Label.TabIndex = 13;
             this.Angle2Label.Text = "Angle 2:";
             // 
@@ -260,7 +307,7 @@
             this.MaxAngle1Label.AutoSize = true;
             this.MaxAngle1Label.Location = new System.Drawing.Point(286, 190);
             this.MaxAngle1Label.Name = "MaxAngle1Label";
-            this.MaxAngle1Label.Size = new System.Drawing.Size(16, 17);
+            this.MaxAngle1Label.Size = new System.Drawing.Size(15, 16);
             this.MaxAngle1Label.TabIndex = 12;
             this.MaxAngle1Label.Text = "π";
             // 
@@ -269,7 +316,7 @@
             this.MinAngle1Label.AutoSize = true;
             this.MinAngle1Label.Location = new System.Drawing.Point(12, 190);
             this.MinAngle1Label.Name = "MinAngle1Label";
-            this.MinAngle1Label.Size = new System.Drawing.Size(21, 17);
+            this.MinAngle1Label.Size = new System.Drawing.Size(19, 16);
             this.MinAngle1Label.TabIndex = 10;
             this.MinAngle1Label.Text = "-π";
             // 
@@ -289,7 +336,7 @@
             this.Angle1Label.AutoSize = true;
             this.Angle1Label.Location = new System.Drawing.Point(12, 143);
             this.Angle1Label.Name = "Angle1Label";
-            this.Angle1Label.Size = new System.Drawing.Size(60, 17);
+            this.Angle1Label.Size = new System.Drawing.Size(55, 16);
             this.Angle1Label.TabIndex = 8;
             this.Angle1Label.Text = "Angle 1:";
             // 
@@ -309,7 +356,7 @@
             this.ScaleLabel.AutoSize = true;
             this.ScaleLabel.Location = new System.Drawing.Point(13, 60);
             this.ScaleLabel.Name = "ScaleLabel";
-            this.ScaleLabel.Size = new System.Drawing.Size(47, 17);
+            this.ScaleLabel.Size = new System.Drawing.Size(45, 16);
             this.ScaleLabel.TabIndex = 2;
             this.ScaleLabel.Text = "Scale:";
             // 
@@ -354,54 +401,9 @@
             this.PresetLabel.AutoSize = true;
             this.PresetLabel.Location = new System.Drawing.Point(12, 9);
             this.PresetLabel.Name = "PresetLabel";
-            this.PresetLabel.Size = new System.Drawing.Size(53, 17);
+            this.PresetLabel.Size = new System.Drawing.Size(49, 16);
             this.PresetLabel.TabIndex = 0;
             this.PresetLabel.Text = "Preset:";
-            // 
-            // OffsetYText
-            // 
-            this.OffsetYText.Location = new System.Drawing.Point(68, 367);
-            this.OffsetYText.Name = "OffsetYText";
-            this.OffsetYText.Size = new System.Drawing.Size(68, 22);
-            this.OffsetYText.TabIndex = 28;
-            this.OffsetYText.Text = "0.000";
-            this.OffsetYText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
-            // OffsetZText
-            // 
-            this.OffsetZText.Location = new System.Drawing.Point(68, 395);
-            this.OffsetZText.Name = "OffsetZText";
-            this.OffsetZText.Size = new System.Drawing.Size(68, 22);
-            this.OffsetZText.TabIndex = 29;
-            this.OffsetZText.Text = "0.000";
-            this.OffsetZText.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
-            // OffsetXLabel
-            // 
-            this.OffsetXLabel.AutoSize = true;
-            this.OffsetXLabel.Location = new System.Drawing.Point(41, 342);
-            this.OffsetXLabel.Name = "OffsetXLabel";
-            this.OffsetXLabel.Size = new System.Drawing.Size(21, 17);
-            this.OffsetXLabel.TabIndex = 30;
-            this.OffsetXLabel.Text = "X:";
-            // 
-            // OffsetYLabel
-            // 
-            this.OffsetYLabel.AutoSize = true;
-            this.OffsetYLabel.Location = new System.Drawing.Point(41, 370);
-            this.OffsetYLabel.Name = "OffsetYLabel";
-            this.OffsetYLabel.Size = new System.Drawing.Size(21, 17);
-            this.OffsetYLabel.TabIndex = 31;
-            this.OffsetYLabel.Text = "Y:";
-            // 
-            // OffsetZLabel
-            // 
-            this.OffsetZLabel.AutoSize = true;
-            this.OffsetZLabel.Location = new System.Drawing.Point(41, 398);
-            this.OffsetZLabel.Name = "OffsetZLabel";
-            this.OffsetZLabel.Size = new System.Drawing.Size(21, 17);
-            this.OffsetZLabel.TabIndex = 32;
-            this.OffsetZLabel.Text = "Z:";
             // 
             // Form1
             // 
