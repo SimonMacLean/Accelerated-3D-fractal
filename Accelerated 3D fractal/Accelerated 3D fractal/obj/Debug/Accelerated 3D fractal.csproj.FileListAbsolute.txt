@@ -81,3 +81,34 @@ D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debu
 D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.CopyComplete
 D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.exe
 D:\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.pdb
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Accelerated 3D fractal.exe.config
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Accelerated 3D fractal.exe
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Accelerated 3D fractal.pdb
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.IL.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.Parallel.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\Alea.xml
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.AssemblyReference.cache
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.SuggestedBindingRedirects.cache
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated_3D_fractal.Form1.resources
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated_3D_fractal.Properties.Resources.resources
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.GenerateResource.cache
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.CoreCompileInputs.cache
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.csproj.CopyComplete
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.exe
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\obj\Debug\Accelerated 3D fractal.pdb
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\FSharp.Core.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\FSharp.Core.xml
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\cs\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\de\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\es\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\fr\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\it\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\ja\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\ko\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\pl\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\pt-BR\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\ru\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\tr\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\zh-Hans\FSharp.Core.resources.dll
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\Accelerated 3D fractal\Accelerated 3D fractal\bin\Debug\zh-Hant\FSharp.Core.resources.dll

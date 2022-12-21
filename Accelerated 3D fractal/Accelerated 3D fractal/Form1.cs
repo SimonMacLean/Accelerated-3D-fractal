@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Alea;
 using Alea.CSharp;
-using Alea.FSharp;
 
 namespace Accelerated_3D_fractal
 {
@@ -34,7 +33,7 @@ namespace Accelerated_3D_fractal
         private int2 mouseLocation;
         private const float MouseSensitivity = 0.01f;
         private bool isMouseDown;
-        private const float FocalLength = -2;
+        private const float FocalLength = 2;
         private const float MinDist = 0.0001f;
         private const float MaxDist = 100;
         private const int Granularity = 1;
@@ -136,21 +135,9 @@ namespace Accelerated_3D_fractal
                 BindingFlags.Instance)
                 ?.SetValue(ScreenDivider.Panel2, true, null);
         }
-        public static float L(float3 p)
-        {
-            return DeviceFunction.Sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
-        }
-        public static float O(float3 a, float3 b)
-        {
-            return a.x * b.x + a.y * b.y + a.z * b.z;
-        }
-        public static float3 D(float3 p, float d)
-        {
-            p.x /= d;
-            p.y /= d;
-            p.z /= d;
-            return p;
-        }
+        public static float L(float3 p) => DeviceFunction.Sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+        public static float O(float3 a, float3 b) => a.x * b.x + a.y * b.y + a.z * b.z;
+        public static float3 D(float3 p, float d) => new float3(p.x / d, p.y / d, p.z / d);
         public static float3 D(float3 p, float3 d)
         {
             p.x /= d.x;
@@ -165,7 +152,8 @@ namespace Accelerated_3D_fractal
             p.z *= d;
             return p;
         }
-        public static float3 M(float3 p, float3 d)
+        
+public static float3 M(float3 p, float3 d)
         {
             p.x *= d.x;
             p.y *= d.y;
@@ -216,9 +204,8 @@ namespace Accelerated_3D_fractal
             int i = blockIdx.x * blockDim.x + threadIdx.x;
             int j = blockIdx.y * blockDim.y + threadIdx.y;
             int h = Index(i, (int)height - 1 - j, (int)width);
-            float3 p = new float3(focalLength, (j - height / 2) / height, (i - width / 2) / height);
-            p = D(p, L(p));
-            directionsPtr[h] = p;
+            float3 p = new float3(-1*focalLength, (j - height / 2) / height, (i - width / 2) / height);
+            directionsPtr[h] = D(p, L(p));
         }
         public void RotateDirection(deviceptr<float3> directionsPtr, float3 a, float t, float c, float s, int width, int height)
         {
@@ -227,11 +214,6 @@ namespace Accelerated_3D_fractal
             int h = Index(i, height - 1 - j, width);
             directionsPtr[h] = RotateVec(directionsPtr[h], a, t, c, s);
             directionsPtr[h] = D(directionsPtr[h], L(directionsPtr[h]));
-        }
-        public void GetColor(deviceptr<Color> colors)
-        {
-            int i = blockIdx.x * blockDim.x + threadIdx.x;
-            colors[i] = Color.FromArgb(i, i, i);
         }
         public static void MarchRay(deviceptr<float3> directions, deviceptr<byte> pixelValues, float3 camera,
             float3 light, float2 cols, float minDist, float maxDist, int maxStep, int bytes, int width, int iterations,
@@ -264,7 +246,7 @@ namespace Accelerated_3D_fractal
                 if (normalAngle > 0)
                     diffuseCalculated =
                         DeviceFunction.Max(
-                            cols.y * NewSoftShadow(p, off, shadowStrength, iterations, side, seed, shift, minDist,
+                            cols.y * SoftShadow(p, off, shadowStrength, iterations, side, seed, shift, minDist,
                                 lightVectorLength, 0.01f) * normalAngle, 0);
                 brightness += diffuseCalculated + cols.x / (1 + stepNum * ambientOccStrength);
                 brightness = DeviceFunction.Min(DeviceFunction.Max(brightness, 0), 1);
@@ -334,7 +316,7 @@ namespace Accelerated_3D_fractal
             }
             return k;
         }
-        public static float NewSoftShadow(float3 p, float3 d, float shadowStrength, int iterations, float side, float3 seed, float3 shift, float minDist, float maxDist, float minAngle)
+        public static float SoftShadow(float3 p, float3 d, float shadowStrength, int iterations, float side, float3 seed, float3 shift, float minDist, float maxDist, float minAngle)
         {
             float darkness = 1;
             float prevDist = float.MaxValue;
