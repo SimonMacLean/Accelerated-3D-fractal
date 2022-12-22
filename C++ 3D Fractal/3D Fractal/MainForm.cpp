@@ -10,7 +10,8 @@ using namespace Reflection;
 using namespace Runtime::InteropServices;
 using namespace Windows::Forms;
 
-cudaError_t load_device_memory(float3** dev_ray_directions, unsigned char** dev_pixel_values, int draw_width, int draw_height)
+cudaError_t load_device_memory(float3** dev_ray_directions, float** dev_ray_lengths, unsigned char** dev_pixel_values, int draw_width,
+                               int draw_height)
 {
 	cudaError_t cuda_status = cudaMalloc(reinterpret_cast<void**>(dev_ray_directions),
 		draw_width * draw_height * sizeof(float3));
@@ -19,21 +20,54 @@ cudaError_t load_device_memory(float3** dev_ray_directions, unsigned char** dev_
 		Console::Error->WriteLine(L"dev_ray_directions cudaMalloc failed!");
 		return cuda_status;
 	}
+	cuda_status = cudaMalloc(reinterpret_cast<void**>(dev_ray_lengths),
+		draw_width * draw_height * sizeof(float3));
+	if (cuda_status != cudaSuccess)
+	{
+		Console::Error->WriteLine(L"dev_ray_lengths cudaMalloc failed!");
+		return cuda_status;
+	}
 	cuda_status = cudaMalloc(reinterpret_cast<void**>(dev_pixel_values),
-		draw_width * draw_height * 3 * sizeof(unsigned char));
+	                         draw_width * draw_height * 3 * sizeof(unsigned char));
 	if (cuda_status != cudaSuccess)
 		Console::Error->WriteLine(L"dev_pixel_values cudaMalloc failed!");
+	return cuda_status;
+}
+
+cudaError_t get_direction_lengths(const dim3 grid_size, const dim3 block_size,
+                                  float** dev_ray_lengths,
+                                  float focal_length, int draw_width, int draw_height)
+{
+	extern void get_direction_length(float* ray_lengths, float focal_len, int width, int height);
+	
+	void* gdl_args[] = {dev_ray_lengths, &focal_length, &draw_width, &draw_height};
+	
+	// Launch a kernel on the GPU with one thread for each element.
+	cudaError_t cuda_status = cudaLaunchKernel((const void*)get_direction_length, grid_size, block_size, gdl_args);
+	if (cuda_status != cudaSuccess)
+	{
+		fprintf(stderr, "get_direction_length launch failed: %s\n", cudaGetErrorString(cuda_status));
+		return cuda_status;
+	}
+	cuda_status = cudaDeviceSynchronize();
+	if (cuda_status != cudaSuccess)
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching get_direction_length!\n",
+		        cuda_status);
 	return cuda_status;
 	
 }
 
-cudaError_t get_directions(const dim3 grid_size, const dim3 block_size, float3** dev_ray_directions, float focal_length,
-                           int draw_width, int draw_height)
+cudaError_t get_directions(const dim3 grid_size, const dim3 block_size, float3** dev_ray_directions,
+                              float** dev_ray_lengths, float3 camera_relative_x, float3 camera_relative_y,
+                              float3 camera_relative_z, float focal_length, int draw_width, int draw_height)
 {
-	extern void get_direction(float3* directions, float focal_len, int width, int height);
-	void* args[] = {dev_ray_directions, &focal_length, &draw_width, &draw_height};
-	// Launch a kernel on the GPU with one thread for each element.
-	cudaError_t cuda_status = cudaLaunchKernel((const void*)get_direction, grid_size, block_size, args);
+	extern void get_direction(float3 * directions, float* direction_lengths, float3 x, float3 y, float3 z,
+		float focal_len, int width, int height);
+	void* gd_args[] = {
+		dev_ray_directions, dev_ray_lengths, &camera_relative_x, &camera_relative_y, &camera_relative_z,
+		&focal_length, &draw_width, &draw_height
+	};
+	cudaError_t cuda_status = cudaLaunchKernel((const void*)get_direction, grid_size, block_size, gd_args);
 	if (cuda_status != cudaSuccess)
 	{
 		fprintf(stderr, "get_direction launch failed: %s\n", cudaGetErrorString(cuda_status));
@@ -45,37 +79,19 @@ cudaError_t get_directions(const dim3 grid_size, const dim3 block_size, float3**
 	return cuda_status;
 }
 
-cudaError_t rotate_directions(const dim3 grid_size, const dim3 block_size, float3** dev_ray_directions,
-                              float3 rotation_axis, float angle_cos, float angle_sin, int draw_width, int draw_height)
+cudaError_t march_rays(const dim3 grid_size, const dim3 block_size, float3** dev_ray_directions,
+                       unsigned char** dev_pixel_values,
+                       float3 camera_location, float3 light_location, float3 colors, int draw_width, int iterations,
+                       fractal_creation_info params)
 {
-	extern void rotate_direction(float3* directions, float3 axis, float cos, float sin, int width, int height);
-	void* args[] = {dev_ray_directions, &rotation_axis, &angle_cos, &angle_sin, &draw_width, &draw_height};
-	// Launch a kernel on the GPU with one thread for each element.
-	cudaError_t cuda_status = cudaLaunchKernel((const void*)rotate_direction, grid_size, block_size, args);
-
-	// Check for any errors launching the kernel
-	if (cuda_status != cudaSuccess)
-	{
-		fprintf(stderr, "rotate_direction launch failed: %s\n", cudaGetErrorString(cuda_status));
-		return cuda_status;
-	}
-
-	// cudaDeviceSynchronize waits for the kernel to finish, and returns
-	// any errors encountered during the launch.
-	cuda_status = cudaDeviceSynchronize();
-	if (cuda_status != cudaSuccess)
-		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching rotate_direction!\n",
-		        cuda_status);
-	return cuda_status;
-}
-
-cudaError_t march_rays(const dim3 grid_size, const dim3 block_size, float3** dev_ray_directions, unsigned char** dev_pixel_values,
-	float3 camera_location, float3 light_location, float3 colors, int draw_width, int iterations, fractal_creation_info params)
-{
-	extern void march_ray(float3 * directions, unsigned char* pixel_values, float3 camera,
-		float3 light, float3 cols, int width, int its, optimized_fractal_info p);
-	optimized_fractal_info o = { params.scale, sin(params.theta), cos(params.theta), sin(params.phi), cos(params.phi), params.offset };
-	void* args[] = { dev_ray_directions, dev_pixel_values, &camera_location, &light_location, &colors, &draw_width, &iterations, &o };
+	extern void march_ray(float3* directions, unsigned char* pixel_values, float3 camera,
+	                      float3 light, float3 cols, int width, int its, optimized_fractal_info p);
+	optimized_fractal_info o = {
+		params.scale, sin(params.theta), cos(params.theta), sin(params.phi), cos(params.phi), params.offset
+	};
+	void* args[] = {
+		dev_ray_directions, dev_pixel_values, &camera_location, &light_location, &colors, &draw_width, &iterations, &o
+	};
 	cudaError_t cuda_status = cudaLaunchKernel((const void*)march_ray, grid_size, block_size, args);
 	if (cuda_status != cudaSuccess)
 	{
@@ -85,22 +101,28 @@ cudaError_t march_rays(const dim3 grid_size, const dim3 block_size, float3** dev
 	cuda_status = cudaDeviceSynchronize();
 	if (cuda_status != cudaSuccess)
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching march_ray!\n",
-			cuda_status);
+		        cuda_status);
 	return cuda_status;
 }
-cudaError_t copy_pixels(unsigned char* dev_pixel_values, interior_ptr<cli::array<unsigned char>^> pixels, int draw_width, int draw_height)
+
+cudaError_t copy_pixels(unsigned char* dev_pixel_values, interior_ptr<cli::array<unsigned char>^> pixels,
+                        int draw_width, int draw_height)
 {
 	unsigned char* unmanaged_pixels = new unsigned char[(*pixels)->GetLength(0)];
-	cudaError_t cuda_status = cudaMemcpy(unmanaged_pixels, dev_pixel_values, draw_width *draw_height * bytes * sizeof(unsigned char), cudaMemcpyDeviceToHost);
+	cudaError_t cuda_status = cudaMemcpy(unmanaged_pixels, dev_pixel_values,
+	                                     draw_width * draw_height * bytes * sizeof(unsigned char),
+	                                     cudaMemcpyDeviceToHost);
 	pin_ptr<unsigned char> pixels_start = &(*pixels)[0];
 	memcpy(pixels_start, unmanaged_pixels, draw_width * draw_height * bytes * sizeof(unsigned char));
-	if (cuda_status != cudaSuccess) {
+	if (cuda_status != cudaSuccess)
+	{
 		fprintf(stderr, "cudaMemcpy failed!");
 		return cuda_status;
 	}
 	delete[] unmanaged_pixels;
 	return cuda_status;
 }
+
 void free_resources(float3* dev_ray_directions, unsigned char* dev_pixels)
 {
 	cudaFree(dev_ray_directions);
@@ -124,16 +146,19 @@ float operator &(const float3 v1, const float3 v2)
 
 float3 operator /(const float3 v, const float s)
 {
-	return { v.x / s, v.y / s, v.z / s };
+	return {v.x / s, v.y / s, v.z / s};
 }
+
 float3 operator *(const float3 v, const float s)
 {
-	return { v.x * s, v.y * s, v.z * s };
+	return {v.x * s, v.y * s, v.z * s};
 }
+
 float3 operator +(const float3 v1, const float3 v2)
 {
-	return { v1.x + v2.x,v1.y + v2.y,v1.z + v2.z };
+	return {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z};
 }
+
 float3 rotate_vec(const float3 vec, const float3 axis, const float cos, const float sin)
 {
 	const float d = (1 - cos) * (axis & vec);
@@ -146,6 +171,7 @@ float3 rotate_vec(const float3 vec, const float3 axis, const float cos, const fl
 
 namespace Accelerated_3D_Fractal
 {
+	float* dev_ray_lengths;
 	float3* dev_ray_directions;
 	unsigned char* dev_pixels;
 	float3 camera_location;
@@ -348,20 +374,23 @@ namespace Accelerated_3D_Fractal
 
 	inline Void MainForm::OnLoad(Object^ sender, EventArgs^ e)
 	{
-		draw_width = ScreenDivider->Panel2->ClientSize.Width / pixel_size / 4 * 4;
-		draw_height = ScreenDivider->Panel2->ClientSize.Height / pixel_size / 4 * 4;
+		DrawPanel->Width = ScreenDivider->Panel2->Width;
+		DrawPanel->Height = ScreenDivider->Panel2->Height;
+		draw_width = DrawPanel->ClientSize.Width / pixel_size / 4 * 4;
+		draw_height = DrawPanel->ClientSize.Height / pixel_size / 4 * 4;
 		pixel_values = gcnew cli::array<unsigned char>(draw_width * draw_height * bytes);
 		b = gcnew Bitmap(draw_width, draw_height, draw_width * bytes,
 		                 PixelFormat::Format24bppRgb, Marshal::UnsafeAddrOfPinnedArrayElement(pixel_values, 0));
-		camera_location = {3, 0, 0};
-		light_location = {20, 20, 20};
-		load_device_memory(&dev_ray_directions, &dev_pixels, draw_width, draw_height);
+		camera_location = {0, 0, -3};
+		light_location = {10, 20, -30};
+		load_device_memory(&dev_ray_directions, &dev_ray_lengths, &dev_pixels, draw_width, draw_height);
 		grid_size = {draw_width / block_size.x, draw_height / block_size.y};
-		get_directions(grid_size, block_size, &dev_ray_directions, focal_length, draw_width, draw_height);
-		camera_relative_x = {0, 0, 1};
-		camera_relative_y = {0, 1, 0};
-		camera_relative_z = {-1, 0, 0};
-		ScreenDivider->Panel2->Invalidate();
+		get_direction_lengths(grid_size, block_size, &dev_ray_lengths, focal_length, draw_width, draw_height);
+		camera_relative_x = { 1, 0, 0 };
+		camera_relative_y = { 0, 1, 0 };
+		camera_relative_z = { 0, 0, 1 };
+		get_directions(grid_size, block_size, &dev_ray_directions, &dev_ray_lengths, camera_relative_x, camera_relative_y, camera_relative_z, focal_length, draw_width, draw_height);
+		DrawPanel->Invalidate();
 	}
 
 	Void MainForm::OnClosed(System::Object^ sender, System::Windows::Forms::FormClosedEventArgs^ e)
@@ -377,7 +406,7 @@ namespace Accelerated_3D_Fractal
 		SetPhiControls();
 		SetOffsetControls();
 		iterations = IterationsSlider->Value;
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
 
 	inline Void MainForm::OnDraw(Object^ sender, PaintEventArgs^ e)
@@ -400,20 +429,17 @@ namespace Accelerated_3D_Fractal
 			const float y_rot_sin = sin(offset.x);
 			const float x_rot_cos = cos(offset.y);
 			const float x_rot_sin = sin(offset.y);
-			rotate_directions(grid_size, block_size, &dev_ray_directions, camera_relative_y, y_rot_cos, y_rot_sin,
-			                  draw_width, draw_height);
 			camera_relative_x = rotate_vec(camera_relative_x, camera_relative_y, y_rot_cos, y_rot_sin);
 			camera_relative_z = rotate_vec(camera_relative_z, camera_relative_y, y_rot_cos, y_rot_sin);
 			camera_location = rotate_vec(camera_location, camera_relative_y, y_rot_cos, y_rot_sin);
-			rotate_directions(grid_size, block_size, &dev_ray_directions, camera_relative_x, x_rot_cos, x_rot_sin,
-			                  draw_width, draw_height);
 			camera_relative_y = rotate_vec(camera_relative_y, camera_relative_x, x_rot_cos, x_rot_sin);
 			camera_relative_z = rotate_vec(camera_relative_z, camera_relative_x, x_rot_cos, x_rot_sin);
 			camera_location = rotate_vec(camera_location, camera_relative_x, x_rot_cos, x_rot_sin);
 			camera_relative_x = camera_relative_x / !camera_relative_x;
 			camera_relative_y = camera_relative_y / !camera_relative_y;
 			camera_relative_z = camera_relative_z / !camera_relative_z;
-			ScreenDivider->Panel2->Invalidate();
+			get_directions(grid_size, block_size, &dev_ray_directions, &dev_ray_lengths, camera_relative_x, camera_relative_y, camera_relative_z, focal_length, draw_width, draw_height);
+			DrawPanel->Invalidate();
 		}
 		mouse_location = {static_cast<float>(e->X), static_cast<float>(e->Y)};
 	}
@@ -432,11 +458,13 @@ namespace Accelerated_3D_Fractal
 	inline Void MainForm::OnMouseWheel(Object^ sender, MouseEventArgs^ e)
 	{
 		if (mouse_location.x < 0 || mouse_location.y < 0 || mouse_location.x >= draw_width * pixel_size ||
-			mouse_location.y >= draw_height * pixel_size) return;
-		float3 mouse_diff = camera_relative_z * -1 + camera_relative_x * (mouse_location.x - draw_width / 2) + camera_relative_y * (draw_height / 2 - mouse_location.y);
+			mouse_location.y >= draw_height * pixel_size)
+			return;
+		float3 mouse_diff = camera_relative_z * focal_length + camera_relative_x * ((mouse_location.x - draw_width / 2)/draw_width)+
+			camera_relative_y * ((draw_height / 2 - mouse_location.y)/draw_width);
 		mouse_diff = mouse_diff / !mouse_diff * (scroll_wheel_movement_size * e->Delta / 100.f);
 		camera_location = camera_location + mouse_diff;
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
 
 	inline Void MainForm::ScaleTextChanged(Object^ sender, EventArgs^ e)
@@ -449,14 +477,16 @@ namespace Accelerated_3D_Fractal
 		}
 		params.scale = stof(s);
 		SetScaleControls();
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
+
 	inline Void MainForm::ScaleSliderScroll(Object^ sender, EventArgs^ e)
 	{
 		params.scale = ScaleSlider->Value * 2.f / ScaleSlider->Maximum;
 		SetScaleControls();
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
+
 	inline Void MainForm::ThetaTextChanged(Object^ sender, EventArgs^ e)
 	{
 		const string s = msclr::interop::marshal_as<std::string>(ThetaText->Text);
@@ -467,14 +497,16 @@ namespace Accelerated_3D_Fractal
 		}
 		params.theta = stof(s);
 		SetThetaControls();
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
+
 	inline Void MainForm::ThetaSliderScroll(Object^ sender, EventArgs^ e)
 	{
 		params.theta = static_cast<float>(ThetaSlider->Value * pi / ThetaSlider->Maximum);
 		SetThetaControls();
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
+
 	inline Void MainForm::PhiTextChanged(Object^ sender, EventArgs^ e)
 	{
 		const string s = msclr::interop::marshal_as<std::string>(PhiText->Text);
@@ -485,14 +517,16 @@ namespace Accelerated_3D_Fractal
 		}
 		params.phi = stof(s);
 		SetPhiControls();
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
+
 	inline Void MainForm::PhiSliderScroll(Object^ sender, EventArgs^ e)
 	{
 		params.phi = static_cast<float>(PhiSlider->Value * pi / PhiSlider->Maximum);
 		SetPhiControls();
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
+
 	inline Void MainForm::OffsetXTextChanged(Object^ sender, EventArgs^ e)
 	{
 		const string s = msclr::interop::marshal_as<std::string>(OffsetXText->Text);
@@ -503,8 +537,9 @@ namespace Accelerated_3D_Fractal
 		}
 		params.offset.x = stof(s);
 		SetOffsetControls();
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
+
 	inline Void MainForm::OffsetYTextChanged(Object^ sender, EventArgs^ e)
 	{
 		const string s = msclr::interop::marshal_as<std::string>(OffsetYText->Text);
@@ -515,8 +550,9 @@ namespace Accelerated_3D_Fractal
 		}
 		params.offset.y = stof(s);
 		SetOffsetControls();
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
+
 	inline Void MainForm::OffsetZTextChanged(Object^ sender, EventArgs^ e)
 	{
 		const string s = msclr::interop::marshal_as<std::string>(OffsetZText->Text);
@@ -527,11 +563,12 @@ namespace Accelerated_3D_Fractal
 		}
 		params.offset.z = stof(s);
 		SetOffsetControls();
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
+
 	inline Void MainForm::IterationsSliderScroll(Object^ sender, EventArgs^ e)
 	{
 		iterations = IterationsSlider->Value;
-		ScreenDivider->Panel2->Invalidate();
+		DrawPanel->Invalidate();
 	}
 }

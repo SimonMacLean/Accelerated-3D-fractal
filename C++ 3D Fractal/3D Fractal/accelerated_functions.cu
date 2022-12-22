@@ -371,21 +371,20 @@ __device__ inline float blue(const float loc)
 {
     return trapezoid_wave(loc + 2 - static_cast<int>((loc + 2) / 6) * 6);
 }
-__global__ void get_direction(float3* directions, float focal_length, int width, int height)
+__global__ void get_direction_length(float* ray_lengths, float focal_length, int width, int height)
 {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     const int j = blockIdx.y * blockDim.y + threadIdx.y;
-    const int h = index(i, height - 1 - j, width);
-    const float3 p = { -1 * focal_length,(j - height / 2.f) / height,(i - width / 2.f) / height };
-    directions[h] = p / !p;
+    ray_lengths[index(i, height - 1 - j, width)] = sqrtf(
+        focal_length * focal_length + ((j - height / 2.f) * (j - height / 2.f) + (i - width / 2.f) * (i - width / 2.f)) / height / height);
 }
-__global__ void rotate_direction(float3* directions, float3 axis, float cos, float sin, int width, int height)
+__global__ void get_direction(float3* directions, float* ray_lengths, float3 x, float3 y, float3 z,
+                              float focal_length, int width, int height)
 {
     const int i = blockIdx.x * blockDim.x + threadIdx.x;
     const int j = blockIdx.y * blockDim.y + threadIdx.y;
-    const int h = index(i, height - 1 - j, width);
-    directions[h] = rotate_vec(directions[h], axis, cos, sin);
-    directions[h] = directions[h] / !directions[h];
+    int h = index(i, height - 1 - j, width);
+    directions[h] = (z * focal_length + y * ((j - height / 2.f) / height) + x * ((i - width / 2.f) / height)) / ray_lengths[h];
 }
 __global__ void march_ray(float3* directions, unsigned char* pixel_values, float3 camera,
     float3 light, float3 cols, int width, int iterations, optimized_fractal_info params)
@@ -409,8 +408,8 @@ __global__ void march_ray(float3* directions, unsigned char* pixel_values, float
         float3 off = light - camera;
         const float light_vector_length = !off;
         off = off / light_vector_length;
-        float diffuse_calculated = 0;
-        const float normal_angle = off & normal(camera, iterations, side, params, minimum_distance);
+        float diffuse_calculated = 0.5;
+        const float normal_angle = off& normal(camera, iterations, side, params, minimum_distance);
         if (normal_angle > 0)
             diffuse_calculated = max(cols.y * soft_shadow(camera, off, shadow_strength, iterations, side, params, minimum_distance,
                 light_vector_length, 0.01f) * normal_angle, 0.f);

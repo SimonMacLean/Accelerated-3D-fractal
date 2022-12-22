@@ -1,4 +1,12 @@
 ﻿#pragma once
+public ref class DBPanel : System::Windows::Forms::Panel
+{
+public:
+	DBPanel() : Panel()
+	{
+		this->DoubleBuffered = true;
+	}
+};
 namespace Accelerated_3D_Fractal {
 	using namespace System;
 	using namespace ComponentModel;
@@ -6,6 +14,7 @@ namespace Accelerated_3D_Fractal {
 	using namespace Windows::Forms;
 	using namespace Data;
 	using namespace Drawing;
+
 	/// <summary>
 	/// The main WinForm
 	/// </summary>
@@ -53,7 +62,8 @@ namespace Accelerated_3D_Fractal {
 		System::Windows::Forms::TrackBar^ PhiSlider;
 		System::Windows::Forms::TextBox^ PhiText;
 		System::Windows::Forms::Label^ PhiLabel;
-		/// <summary>
+		DBPanel^ DrawPanel;
+		   /// <summary>
 		/// Required designer variable.
 		/// </summary>
 		System::ComponentModel::Container^ components;
@@ -93,8 +103,10 @@ namespace Accelerated_3D_Fractal {
 			this->ScaleLabel = (gcnew System::Windows::Forms::Label());
 			this->PresetDropdown = (gcnew System::Windows::Forms::ComboBox());
 			this->PresetLabel = (gcnew System::Windows::Forms::Label());
+			this->DrawPanel = (gcnew DBPanel());
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->ScreenDivider))->BeginInit();
 			this->ScreenDivider->Panel1->SuspendLayout();
+			this->ScreenDivider->Panel2->SuspendLayout();
 			this->ScreenDivider->SuspendLayout();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->IterationsSlider))->BeginInit();
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->PhiSlider))->BeginInit();
@@ -141,11 +153,7 @@ namespace Accelerated_3D_Fractal {
 			// 
 			// ScreenDivider.Panel2
 			// 
-			this->ScreenDivider->Panel2->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &MainForm::OnDraw);
-			this->ScreenDivider->Panel2->MouseDown += gcnew System::Windows::Forms::MouseEventHandler(this, &MainForm::OnMouseDown);
-			this->ScreenDivider->Panel2->MouseMove += gcnew System::Windows::Forms::MouseEventHandler(this, &MainForm::OnMouseMove);
-			this->ScreenDivider->Panel2->MouseUp += gcnew System::Windows::Forms::MouseEventHandler(this, &MainForm::OnMouseUp);
-			this->ScreenDivider->Panel2->MouseWheel += gcnew System::Windows::Forms::MouseEventHandler(this, &MainForm::OnMouseWheel);
+			this->ScreenDivider->Panel2->Controls->Add(this->DrawPanel);
 			this->ScreenDivider->Size = System::Drawing::Size(982, 703);
 			this->ScreenDivider->SplitterDistance = 331;
 			this->ScreenDivider->TabIndex = 0;
@@ -495,6 +503,18 @@ namespace Accelerated_3D_Fractal {
 			this->PresetLabel->Text = L"Preset:";
 			this->PresetLabel->TextAlign = System::Drawing::ContentAlignment::MiddleCenter;
 			// 
+			// DrawPanel
+			// 
+			this->DrawPanel->Location = System::Drawing::Point(4, 4);
+			this->DrawPanel->Name = L"DrawPanel";
+			this->DrawPanel->Size = System::Drawing::Size(640, 696);
+			this->DrawPanel->TabIndex = 0;
+			this->DrawPanel->Paint += gcnew System::Windows::Forms::PaintEventHandler(this, &MainForm::OnDraw);
+			this->DrawPanel->MouseDown += gcnew System::Windows::Forms::MouseEventHandler(this, &MainForm::OnMouseDown);
+			this->DrawPanel->MouseMove += gcnew System::Windows::Forms::MouseEventHandler(this, &MainForm::OnMouseMove);
+			this->DrawPanel->MouseUp += gcnew System::Windows::Forms::MouseEventHandler(this, &MainForm::OnMouseUp);
+			this->DrawPanel->MouseWheel += gcnew System::Windows::Forms::MouseEventHandler(this, &MainForm::OnMouseWheel);
+			// 
 			// MainForm
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(8, 16);
@@ -511,6 +531,7 @@ namespace Accelerated_3D_Fractal {
 			this->Load += gcnew System::EventHandler(this, &MainForm::OnLoad);
 			this->ScreenDivider->Panel1->ResumeLayout(false);
 			this->ScreenDivider->Panel1->PerformLayout();
+			this->ScreenDivider->Panel2->ResumeLayout(false);
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->ScreenDivider))->EndInit();
 			this->ScreenDivider->ResumeLayout(false);
 			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->IterationsSlider))->EndInit();
@@ -547,4 +568,3 @@ namespace Accelerated_3D_Fractal {
 		Bitmap^ b;
 	};
 }
-
