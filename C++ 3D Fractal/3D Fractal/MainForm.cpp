@@ -1,5 +1,7 @@
 #include "MainForm.h"
 #include <sstream>
+#include <iostream>
+#include <algorithm>
 #include <msclr/marshal_cppstd.h>
 #include "fractal_params.h"
 using namespace std;
@@ -35,15 +37,15 @@ cudaError_t load_device_memory(float3** dev_ray_directions, float** dev_ray_leng
 }
 
 cudaError_t get_direction_lengths(const dim3 grid_size, const dim3 block_size,
-                                  float** dev_ray_lengths,
+                                  float** dev_ray_length_invs,
                                   float focal_length, int draw_width, int draw_height)
 {
-	extern void get_direction_length(float* ray_lengths, float focal_len, int width, int height);
+	extern void get_direction_length_inv(float* ray_length_invs, const float focal_len, const int width, const int height);
 	
-	void* gdl_args[] = {dev_ray_lengths, &focal_length, &draw_width, &draw_height};
+	void* gdl_args[] = {dev_ray_length_invs, &focal_length, &draw_width, &draw_height};
 	
 	// Launch a kernel on the GPU with one thread for each element.
-	cudaError_t cuda_status = cudaLaunchKernel((const void*)get_direction_length, grid_size, block_size, gdl_args);
+	cudaError_t cuda_status = cudaLaunchKernel((const void*)get_direction_length_inv, grid_size, block_size, gdl_args);
 	if (cuda_status != cudaSuccess)
 	{
 		fprintf(stderr, "get_direction_length launch failed: %s\n", cudaGetErrorString(cuda_status));
@@ -58,13 +60,13 @@ cudaError_t get_direction_lengths(const dim3 grid_size, const dim3 block_size,
 }
 
 cudaError_t get_directions(const dim3 grid_size, const dim3 block_size, float3** dev_ray_directions,
-                              float** dev_ray_lengths, float3 camera_relative_x, float3 camera_relative_y,
+                              float** dev_ray_length_invs, float3 camera_relative_x, float3 camera_relative_y,
                               float3 camera_relative_z, float focal_length, int draw_width, int draw_height)
 {
-	extern void get_direction(float3 * directions, float* direction_lengths, float3 x, float3 y, float3 z,
-		float focal_len, int width, int height);
+	extern void get_direction(float3* directions, const float* ray_length_invs, const float3 x, const float3 y, const float3 z,
+		const float focal_length, const int width, const int height);
 	void* gd_args[] = {
-		dev_ray_directions, dev_ray_lengths, &camera_relative_x, &camera_relative_y, &camera_relative_z,
+		dev_ray_directions, dev_ray_length_invs, &camera_relative_x, &camera_relative_y, &camera_relative_z,
 		&focal_length, &draw_width, &draw_height
 	};
 	cudaError_t cuda_status = cudaLaunchKernel((const void*)get_direction, grid_size, block_size, gd_args);
@@ -81,16 +83,16 @@ cudaError_t get_directions(const dim3 grid_size, const dim3 block_size, float3**
 
 cudaError_t march_rays(const dim3 grid_size, const dim3 block_size, float3** dev_ray_directions,
                        unsigned char** dev_pixel_values,
-                       float3 camera_location, float3 light_location, float3 colors, int draw_width, int iterations,
+                       float3 camera_location, float3 light_location, float3 colors, int draw_width, int draw_height, int iterations,
                        fractal_creation_info params)
 {
-	extern void march_ray(float3* directions, unsigned char* pixel_values, float3 camera,
-	                      float3 light, float3 cols, int width, int its, optimized_fractal_info p);
+	extern void march_ray(const float3 * directions, unsigned char* pixel_values, float3 camera,
+		const float3 light, const float3 cols, const int width, const int height, const int iterations, const optimized_fractal_info p);
 	optimized_fractal_info o = {
-		params.scale, sin(params.theta), cos(params.theta), sin(params.phi), cos(params.phi), params.offset
+		1/params.scale, sin(params.theta), cos(params.theta), sin(params.phi), cos(params.phi), params.offset
 	};
 	void* args[] = {
-		dev_ray_directions, dev_pixel_values, &camera_location, &light_location, &colors, &draw_width, &iterations, &o
+		dev_ray_directions, dev_pixel_values, &camera_location, &light_location, &colors, &draw_width, &draw_height, &iterations, &o
 	};
 	cudaError_t cuda_status = cudaLaunchKernel((const void*)march_ray, grid_size, block_size, args);
 	if (cuda_status != cudaSuccess)
@@ -106,20 +108,17 @@ cudaError_t march_rays(const dim3 grid_size, const dim3 block_size, float3** dev
 }
 
 cudaError_t copy_pixels(unsigned char* dev_pixel_values, interior_ptr<cli::array<unsigned char>^> pixels,
-                        int draw_width, int draw_height)
+	int draw_width, int draw_height)
 {
-	unsigned char* unmanaged_pixels = new unsigned char[(*pixels)->GetLength(0)];
-	cudaError_t cuda_status = cudaMemcpy(unmanaged_pixels, dev_pixel_values,
-	                                     draw_width * draw_height * bytes * sizeof(unsigned char),
-	                                     cudaMemcpyDeviceToHost);
 	pin_ptr<unsigned char> pixels_start = &(*pixels)[0];
-	memcpy(pixels_start, unmanaged_pixels, draw_width * draw_height * bytes * sizeof(unsigned char));
+	cudaError_t cuda_status = cudaMemcpy(pixels_start, dev_pixel_values,
+		draw_width * draw_height * bytes * sizeof(unsigned char),
+		cudaMemcpyDeviceToHost);
 	if (cuda_status != cudaSuccess)
 	{
 		fprintf(stderr, "cudaMemcpy failed!");
 		return cuda_status;
 	}
-	delete[] unmanaged_pixels;
 	return cuda_status;
 }
 
@@ -136,7 +135,7 @@ float operator !(const float3 v)
 
 float3 operator ^(const float3 v1, const float3 v2)
 {
-	return {v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x};
+	return make_float3(v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x);
 }
 
 float operator &(const float3 v1, const float3 v2)
@@ -146,27 +145,28 @@ float operator &(const float3 v1, const float3 v2)
 
 float3 operator /(const float3 v, const float s)
 {
-	return {v.x / s, v.y / s, v.z / s};
+	return make_float3(v.x / s, v.y / s, v.z / s);
 }
 
 float3 operator *(const float3 v, const float s)
 {
-	return {v.x * s, v.y * s, v.z * s};
+	return make_float3(v.x * s, v.y * s, v.z * s);
 }
 
 float3 operator +(const float3 v1, const float3 v2)
 {
-	return {v1.x + v2.x, v1.y + v2.y, v1.z + v2.z};
+	return make_float3(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);
 }
 
 float3 rotate_vec(const float3 vec, const float3 axis, const float cos, const float sin)
 {
 	const float d = (1 - cos) * (axis & vec);
 	const float3 cross = axis ^ vec;
-	return {
-		d * axis.x + vec.x * cos + sin * cross.x, d * axis.y + vec.y * cos + sin * cross.y,
+	return make_float3(
+		d * axis.x + vec.x * cos + sin * cross.x, 
+		d * axis.y + vec.y * cos + sin * cross.y,
 		d * axis.z + vec.z * cos + sin * cross.z
-	};
+	);
 }
 
 namespace Accelerated_3D_Fractal
@@ -181,7 +181,7 @@ namespace Accelerated_3D_Fractal
 	float3 camera_relative_z;
 	constexpr float scroll_wheel_movement_size = 1.f;
 	fractal_creation_info params = {1, 0, 0, {0, 0, 0}};
-	constexpr float3 brightness_scalars = {0.5f, 0.8f};
+	constexpr float3 brightness_scalars = {0.2f, 0.8f};
 	fractal_creation_info presets[25] = {
 		{1.8f, -0.12f, 0.5f, {0.353333f, 0.458333f, -0.081667f}},
 		{1.9073f, 2.72f, -1.16f, {0.493000f, 0.532167f, -0.449167f}},
@@ -226,116 +226,10 @@ namespace Accelerated_3D_Fractal
 		if (cudaSetDevice(0) != cudaSuccess)
 			fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
 	}
-
 	inline std::string to_string(const float3 a)
 	{
 		return "(" + std::to_string(a.x) + "," + std::to_string(a.y) + "," + std::to_string(a.z) + ")";
 	}
-
-	/*int main()
-	{
-		constexpr int array_size = 5;
-		const float3 a[array_size] = { {1, 2, 3}, make_float3(4, 5, 6), make_float3(7, 8, 9), make_float3(10, 11, 12), make_float3(13, 14, 15) };
-		const float3 b[array_size] = { make_float3(10, 20, 30), make_float3(40, 50, 60), make_float3(70, 80, 90), make_float3(100, 110, 120), make_float3(130, 140, 150) };
-		float3 c[array_size] = { {0,0,0} };
-
-		// Add vectors in parallel.
-		cudaError_t cuda_status = add_with_cuda(c, a, b, array_size);
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "addWithCuda failed!");
-			return 1;
-		}
-
-		printf("a + b = {%s, %s, %s, %s, %s}\n",
-			to_string(c[0]).c_str(), to_string(c[1]).c_str(), to_string(c[2]).c_str(), to_string(c[3]).c_str(), to_string(c[4]).c_str());
-
-		// cudaDeviceReset must be called before exiting in order for profiling and
-		// tracing tools such as Nsight and Visual Profiler to show complete traces.
-		cuda_status = cudaDeviceReset();
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "cudaDeviceReset failed!");
-			return 1;
-		}
-
-		return 0;
-	}
-	// Helper function for using CUDA to add vectors in parallel.
-	cudaError_t add_with_cuda(float3* c, const float3* a, const float3* b, unsigned int size)
-	{
-		float3* dev_a = nullptr;
-		float3* dev_b = nullptr;
-		float3* dev_c = nullptr;
-
-		// Choose which GPU to run on, change this on a multi-GPU system.
-		cudaError_t cuda_status = cudaSetDevice(0);
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
-			goto Error;
-		}
-
-		// Allocate GPU buffers for three vectors (two input, one output)    .
-		cuda_status = cudaMalloc(reinterpret_cast<void**>(&dev_c), size * sizeof(float3));
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "cudaMalloc failed!");
-			goto Error;
-		}
-
-		cuda_status = cudaMalloc(reinterpret_cast<void**>(&dev_a), size * sizeof(float3));
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "cudaMalloc failed!");
-			goto Error;
-		}
-
-		cuda_status = cudaMalloc(reinterpret_cast<void**>(&dev_b), size * sizeof(float3));
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "cudaMalloc failed!");
-			goto Error;
-		}
-
-		// Copy input vectors from host memory to GPU buffers.
-		cuda_status = cudaMemcpy(dev_a, a, size * sizeof(float3), cudaMemcpyHostToDevice);
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "cudaMemcpy failed!");
-			goto Error;
-		}
-
-		cuda_status = cudaMemcpy(dev_b, b, size * sizeof(float3), cudaMemcpyHostToDevice);
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "cudaMemcpy failed!");
-			goto Error;
-		}
-
-		// Launch a kernel on the GPU with one thread for each element.
-		add << <1, size >> > (dev_c, dev_a, dev_b);
-
-		// Check for any errors launching the kernel
-		cuda_status = cudaGetLastError();
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "addKernel launch failed: %s\n", cudaGetErrorString(cuda_status));
-			goto Error;
-		}
-
-		// cudaDeviceSynchronize waits for the kernel to finish, and returns
-		// any errors encountered during the launch.
-		cuda_status = cudaDeviceSynchronize();
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching addKernel!\n", cuda_status);
-			goto Error;
-		}
-
-		// Copy output vector from GPU buffer to host memory.
-		cuda_status = cudaMemcpy(c, dev_c, size * sizeof(float3), cudaMemcpyDeviceToHost);
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "cudaMemcpy failed!");
-		}
-
-	Error:
-		cudaFree(dev_c);
-		cudaFree(dev_a);
-		cudaFree(dev_b);
-
-		return cuda_status;
-	}*/
 	bool is_float(const string s)
 	{
 		istringstream iss(s);
@@ -343,7 +237,11 @@ namespace Accelerated_3D_Fractal
 		iss >> noskipws >> f;
 		return iss.eof() && !iss.fail();
 	}
-
+	string commaToPeriod(const string& input) {
+		string result = input;
+		replace(result.begin(), result.end(), ',', '.');
+		return result;
+	}
 	Void MainForm::SetScaleControls()
 	{
 		ScaleText->Text = params.scale.ToString("0.000");
@@ -384,7 +282,7 @@ namespace Accelerated_3D_Fractal
 		camera_location = {0, 0, -3};
 		light_location = {10, 20, -30};
 		load_device_memory(&dev_ray_directions, &dev_ray_lengths, &dev_pixels, draw_width, draw_height);
-		grid_size = {draw_width / block_size.x, draw_height / block_size.y};
+		grid_size = {(draw_width + block_size.x - 1) / block_size.x, (draw_height + block_size.y - 1) / block_size.y};
 		get_direction_lengths(grid_size, block_size, &dev_ray_lengths, focal_length, draw_width, draw_height);
 		camera_relative_x = { 1, 0, 0 };
 		camera_relative_y = { 0, 1, 0 };
@@ -413,7 +311,7 @@ namespace Accelerated_3D_Fractal
 	{
 		//if (directions.Length == 0) return;
 		march_rays(grid_size, block_size, &dev_ray_directions, &dev_pixels, camera_location, light_location,
-		           brightness_scalars, draw_width, iterations, params);
+		           brightness_scalars, draw_width, draw_height, iterations, params);
 		copy_pixels(dev_pixels, &pixel_values, draw_width, draw_height);
 		e->Graphics->DrawImage(b, 0, 0, draw_width * pixel_size, draw_height * pixel_size);
 	}
@@ -469,7 +367,7 @@ namespace Accelerated_3D_Fractal
 
 	inline Void MainForm::ScaleTextChanged(Object^ sender, EventArgs^ e)
 	{
-		const string s = msclr::interop::marshal_as<std::string>(ScaleText->Text);
+		const string s = commaToPeriod(msclr::interop::marshal_as<std::string>(ScaleText->Text));
 		if (!is_float(s))
 		{
 			SetScaleControls();
@@ -489,7 +387,7 @@ namespace Accelerated_3D_Fractal
 
 	inline Void MainForm::ThetaTextChanged(Object^ sender, EventArgs^ e)
 	{
-		const string s = msclr::interop::marshal_as<std::string>(ThetaText->Text);
+		const string s = commaToPeriod(msclr::interop::marshal_as<std::string>(ThetaText->Text));
 		if (!is_float(s))
 		{
 			SetThetaControls();
@@ -509,7 +407,7 @@ namespace Accelerated_3D_Fractal
 
 	inline Void MainForm::PhiTextChanged(Object^ sender, EventArgs^ e)
 	{
-		const string s = msclr::interop::marshal_as<std::string>(PhiText->Text);
+		const string s = commaToPeriod(msclr::interop::marshal_as<std::string>(PhiText->Text));
 		if (!is_float(s))
 		{
 			SetPhiControls();
@@ -529,7 +427,7 @@ namespace Accelerated_3D_Fractal
 
 	inline Void MainForm::OffsetXTextChanged(Object^ sender, EventArgs^ e)
 	{
-		const string s = msclr::interop::marshal_as<std::string>(OffsetXText->Text);
+		const string s = commaToPeriod(msclr::interop::marshal_as<std::string>(OffsetXText->Text));
 		if (!is_float(s))
 		{
 			SetOffsetControls();
@@ -542,7 +440,7 @@ namespace Accelerated_3D_Fractal
 
 	inline Void MainForm::OffsetYTextChanged(Object^ sender, EventArgs^ e)
 	{
-		const string s = msclr::interop::marshal_as<std::string>(OffsetYText->Text);
+		const string s = commaToPeriod(msclr::interop::marshal_as<std::string>(OffsetYText->Text));
 		if (!is_float(s))
 		{
 			SetOffsetControls();
@@ -555,7 +453,7 @@ namespace Accelerated_3D_Fractal
 
 	inline Void MainForm::OffsetZTextChanged(Object^ sender, EventArgs^ e)
 	{
-		const string s = msclr::interop::marshal_as<std::string>(OffsetZText->Text);
+		const string s = commaToPeriod(msclr::interop::marshal_as<std::string>(OffsetZText->Text));
 		if (!is_float(s))
 		{
 			SetOffsetControls();

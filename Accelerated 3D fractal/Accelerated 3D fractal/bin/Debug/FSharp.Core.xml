@@ -2,13 +2,21 @@
 <doc>
 <assembly><name>FSharp.Core</name></assembly>
 <members>
+<member name="T:System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes">
+ <summary>
+ Specifies the types of members that are dynamically accessed.
+
+ This enumeration has a <see cref="FlagsAttribute"/> attribute that allows a
+ bitwise combination of its member values.
+ </summary>
+</member>
 <member name="T:Microsoft.FSharp.Collections.seq`1">
  <summary>An abbreviation for the CLI type <see cref="T:System.Collections.Generic.IEnumerable`1"/></summary>
 
  <remarks>
   See the <see cref="T:Microsoft.FSharp.Collections.SeqModule"/> module for further operations related to sequences.
 
-  See also <a href="https://docs.microsoft.com/dotnet/fsharp/language-reference/sequences">F# Language Guide - Sequences</a>.
+  See also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/sequences">F# Language Guide - Sequences</a>.
 </remarks>
 </member>
 <member name="T:Microsoft.FSharp.Collections.ResizeArray`1">
@@ -23,7 +31,7 @@
  the notation <c>[1; 2; 3]</c>. Use the values in the <c>List</c> module to manipulate 
  values of this type, or pattern match against the values directly.
 
-  See also <a href="https://docs.microsoft.com/dotnet/fsharp/language-reference/lists">F# Language Guide - Lists</a>.
+  See also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/lists">F# Language Guide - Lists</a>.
  </remarks>
 </member>
 <member name="P:Microsoft.FSharp.Collections.FSharpList`1.Tail">
@@ -898,7 +906,7 @@
  <summary>Contains operations for working with 2-dimensional arrays.</summary>
 
  <remarks>
-  <para>See also <a href="https://docs.microsoft.com/dotnet/fsharp/language-reference/arrays">F# Language Guide - Arrays</a>.</para>
+  <para>See also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/arrays">F# Language Guide - Arrays</a>.</para>
 
  <para>F# and CLI multi-dimensional arrays are typically zero-based.
  However, CLI multi-dimensional arrays used in conjunction with external
@@ -4261,7 +4269,7 @@
  <code lang="fsharp">
  let input = [1; 2; 3]
 
- input |> List.tryPick (fun n -> if n > 3 = 0 then Some (string n) else None)
+ input |> List.tryPick (fun n -> if n > 3 then Some (string n) else None)
  </code>
  Evaluates to <c>None</c>.
  </example>
@@ -4858,7 +4866,7 @@
  <code lang="fsharp">
  let input = [1; 2; 3]
 
- input |> List.pick (fun n -> if n > 3 = 0 then Some (string n) else None)
+ input |> List.pick (fun n -> if n > 3 then Some (string n) else None)
  </code>
  Throws <c>KeyNotFoundException</c>.
  </example>
@@ -6433,7 +6441,7 @@
  <summary>Contains operations for working with values of type <see cref="T:Microsoft.FSharp.Collections.list`1"/>.</summary>
 
  <namespacedoc><summary>Operations for collections such as lists, arrays, sets, maps and sequences. See also 
-    <a href="https://docs.microsoft.com/dotnet/fsharp/language-reference/fsharp-collection-types">F# Collection Types</a> in the F# Language Guide.
+    <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/fsharp-collection-types">F# Collection Types</a> in the F# Language Guide.
  </summary></namespacedoc>
 </member>
 <member name="M:Microsoft.FSharp.Collections.ArrayModule.InsertManyAt``1(System.Int32,System.Collections.Generic.IEnumerable{``0},``0[])">
@@ -9384,6 +9392,219 @@
  </code>
  </example>
 </member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.Filter``1(Microsoft.FSharp.Core.FSharpFunc{``0,System.Boolean},``0[])">
+ <summary>Returns a new collection containing only the elements of the collection
+ for which the given predicate returns <c>true</c>.</summary>
+
+ <param name="predicate">The function to test the input elements.</param>
+ <param name="array">The input array.</param>
+
+ <returns>An array containing the elements for which the given predicate returns true.</returns>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is <c>null</c>.</exception>
+
+ <example id="para-filter-1">
+ <code lang="fsharp">
+ let inputs = [| 1; 2; 3; 4 |]
+
+ inputs |> Array.Parallel.filter (fun elm -> elm % 2 = 0)
+ </code>
+ Evaluates to <c>[| 2; 4 |]</c>
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.Zip``2(``0[],``1[])">
+ <summary>Combines the two arrays into an array of pairs. The two arrays must have equal lengths, otherwise an <c>ArgumentException</c> is
+ raised.</summary>
+
+ <param name="array1">The first input array.</param>
+ <param name="array2">The second input array.</param>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when either of the input arrays is null.</exception>
+ <exception cref="T:System.ArgumentException">Thrown when the input arrays differ in length.</exception>
+
+ <returns>The array of tupled elements.</returns>
+
+ <example id="para-zip-1">
+ <code lang="fsharp">
+ let numbers = [|1; 2|]
+ let names = [|"one"; "two"|]
+
+ Array.Parallel.zip numbers names
+ </code>
+ Evaluates to <c>[| (1, "one"); (2, "two") |]</c>.
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.SortByDescending``2(Microsoft.FSharp.Core.FSharpFunc{``0,``1},``0[])">
+ <summary>Sorts the elements of an array in parallel, in descending order, using the given projection for the keys and returning a new array. 
+ Elements are compared using <see cref="M:Microsoft.FSharp.Core.Operators.compare"/>.</summary>
+
+ <remarks>This is not a stable sort, i.e. the original order of equal elements is not necessarily preserved. 
+ For a stable sort, consider using <see cref="M:Microsoft.FSharp.Collections.SeqModule.Sort"/>.</remarks>
+
+ <param name="projection">The function to transform array elements into the type that is compared.</param>
+ <param name="array">The input array.</param>
+
+ <returns>The sorted array.</returns>
+ 
+ <example id="para-sortbydescending-1">
+ <code lang="fsharp">
+ let input = [| "a"; "bbb"; "cccc"; "dd" |]
+
+ input |> Array.Parallel.sortByDescending (fun s -> s.Length)
+ </code>
+ Evaluates to <c>[|"cccc"; "bbb"; "dd"; "a"|]</c>.
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.SortDescending``1(``0[])">
+ <summary>Sorts the elements of an array in parallel, in descending order, returning a new array. Elements are compared using <see cref="M:Microsoft.FSharp.Core.Operators.compare"/>. </summary>
+
+ <remarks>This is not a stable sort, i.e. the original order of equal elements is not necessarily preserved. 
+ For a stable sort, consider using <see cref="M:Microsoft.FSharp.Collections.SeqModule.Sort"/>.</remarks>
+
+ <param name="array">The input array.</param>
+
+ <returns>The sorted array.</returns>
+ 
+ <example id="para-sortdescending-1">
+ <code lang="fsharp">
+ let input = [| 8; 4; 3; 1; 6; 1 |]
+
+ input |> Array.Parallel.sortDescending
+ </code>
+ Evaluates to <c>[| 8; 6; 4; 3; 1; 1 |]</c>.
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.SortInPlace``1(``0[])">
+ <summary>Sorts the elements of an array by mutating the array in-place in parallel, using the given comparison function. 
+ Elements are compared using <see cref="M:Microsoft.FSharp.Core.Operators.compare"/>.</summary>
+
+ <param name="array">The input array.</param>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+ 
+ <example id="para-sortinplace-1">
+ <code lang="fsharp">
+ let array = [| 8; 4; 3; 1; 6; 1 |]
+
+ Array.sortInPlace array
+ </code>
+ After evaluation <c>array</c> contains <c>[| 1; 1; 3; 4; 6; 8 |]</c>.
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.SortInPlaceWith``1(Microsoft.FSharp.Core.FSharpFunc{``0,Microsoft.FSharp.Core.FSharpFunc{``0,System.Int32}},``0[])">
+ <summary>Sorts the elements of an array by mutating the array in-place in parallel, using the given comparison function as the order.</summary>
+
+ <param name="comparer">The function to compare pairs of array elements.</param>
+ <param name="array">The input array.</param>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+ 
+ <example id="para-sortinplacewith-1"> The following sorts entries using a comparison function that compares string lengths then index numbers:
+ <code lang="fsharp">
+ let compareEntries (n1: int, s1: string) (n2: int, s2: string) =
+     let c = compare s1.Length s2.Length
+     if c &lt;> 0 then c else
+     compare n1 n2
+
+ let array = [| (0,"aa"); (1,"bbb"); (2,"cc"); (3,"dd") |]
+
+ array |> Array.Parallel.sortInPlaceWith compareEntries
+ </code>
+ After evaluation <c>array</c> contains <c>[|(0, "aa"); (2, "cc"); (3, "dd"); (1, "bbb")|]</c>.
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.SortInPlaceBy``2(Microsoft.FSharp.Core.FSharpFunc{``0,``1},``0[])">
+ <summary>Sorts the elements of an array by mutating the array in-place in parallel, using the given projection for the keys. 
+ Elements are compared using <see cref="M:Microsoft.FSharp.Core.Operators.compare"/>.</summary>
+
+ <remarks>This is not a stable sort, i.e. the original order of equal elements is not necessarily preserved. 
+ For a stable sort, consider using <see cref="M:Microsoft.FSharp.Collections.SeqModule.Sort"/>.</remarks>
+
+ <param name="projection">The function to transform array elements into the type that is compared.</param>
+ <param name="array">The input array.</param>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+ 
+ <example id="para-sortinplaceby-1">
+ <code lang="fsharp">
+ let array = [| "a"; "bbb"; "cccc"; "dd" |]
+
+ array |> Array.Parallel.sortInPlaceBy (fun s -> s.Length)
+ </code>
+ After evaluation <c>array</c> contains <c>[|"a"; "dd"; "bbb"; "cccc"|]</c>.
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.SortWith``1(Microsoft.FSharp.Core.FSharpFunc{``0,Microsoft.FSharp.Core.FSharpFunc{``0,System.Int32}},``0[])">
+ <summary>Sorts the elements of an array in parallel, using the given comparison function as the order, returning a new array.</summary>
+
+ <remarks>This is not a stable sort, i.e. the original order of equal elements is not necessarily preserved. 
+ For a stable sort, consider using <see cref="M:Microsoft.FSharp.Collections.SeqModule.Sort"/>.</remarks>
+
+ <param name="comparer">The function to compare pairs of array elements.</param>
+ <param name="array">The input array.</param>
+
+ <returns>The sorted array.</returns>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+ 
+ <example id="para-sortwith-1">Sort an array of pairs using a comparison function that compares string lengths then index numbers:
+ <code lang="fsharp">
+ let compareEntries (n1: int, s1: string) (n2: int, s2: string) =
+     let c = compare s1.Length s2.Length
+     if c &lt;> 0 then c else
+     compare n1 n2
+
+ let input = [| (0,"aa"); (1,"bbb"); (2,"cc"); (3,"dd") |]
+
+ input |> Array.Parallel.sortWith compareEntries
+ </code>
+ Evaluates to <c>[|(0, "aa"); (2, "cc"); (3, "dd"); (1, "bbb")|]</c>.
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.SortBy``2(Microsoft.FSharp.Core.FSharpFunc{``0,``1},``0[])">
+ <summary>Sorts the elements of an array in parallel, using the given projection for the keys and returning a new array. 
+ Elements are compared using <see cref="M:Microsoft.FSharp.Core.Operators.compare"/>.</summary>
+
+ <remarks>This is not a stable sort, i.e. the original order of equal elements is not necessarily preserved. 
+ For a stable sort, consider using <see cref="M:Microsoft.FSharp.Collections.SeqModule.Sort"/>.</remarks>
+
+ <param name="projection">The function to transform array elements into the type that is compared.</param>
+ <param name="array">The input array.</param>
+
+ <returns>The sorted array.</returns>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+ 
+ <example id="para-sortby-1">
+ <code lang="fsharp">
+ let input = [| "a"; "bbb"; "cccc"; "dd" |]
+
+ input |> Array.Parallel.sortBy (fun s -> s.Length)
+ </code>
+ Evaluates to <c>[|"a"; "dd"; "bbb"; "cccc"|]</c>.
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.Sort``1(``0[])">
+ <summary>Sorts the elements of an array in parallel, returning a new array. Elements are compared using <see cref="M:Microsoft.FSharp.Core.Operators.compare"/>. </summary>
+
+ <remarks>This is not a stable sort, i.e. the original order of equal elements is not necessarily preserved. 
+ For a stable sort, consider using <see cref="M:Microsoft.FSharp.Collections.SeqModule.Sort"/>.</remarks>
+
+ <param name="array">The input array.</param>
+
+ <returns>The sorted array.</returns>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+ 
+ <example id="para-sort-1">
+ <code lang="fsharp">
+ let input = [| 8; 4; 3; 1; 6; 1 |]
+
+ Array.Parallel.sort input
+ </code>
+ Evaluates to <c>[| 1; 1 3; 4; 6; 8 |]</c>.
+ </example>
+</member>
 <member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.Partition``1(Microsoft.FSharp.Core.FSharpFunc{``0,System.Boolean},``0[])">
  <summary>Split the collection into two collections, containing the 
  elements for which the given predicate returns "true" and "false"
@@ -9475,6 +9696,30 @@
  c
  b
  </code>
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.GroupBy``2(Microsoft.FSharp.Core.FSharpFunc{``0,``1},``0[])">
+ <summary>Applies a key-generating function to each element of an array in parallel and yields an array of 
+ unique keys. Each unique key contains an array of all elements that match 
+ to this key.</summary>
+
+ <remarks>Performs the operation in parallel using <see cref="M:System.Threading.Tasks.Parallel.For" />.
+ The order in which the given function is applied to elements of the input array is not specified.
+ The order of the keys and values in the result is also not specified</remarks>
+ <param name="projection">A function that transforms an element of the array into a comparable key.</param>
+ <param name="array">The input array.</param>
+
+ <returns>The result array.</returns>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+
+ <example id="group-by-para-1">
+ <code lang="fsharp">
+ let inputs = [| 1; 2; 3; 4; 5 |]
+
+ inputs |> Array.Parallel.groupBy (fun n -> n % 2)
+ </code>
+ Evaluates to <c>[| (1, [| 1; 3; 5 |]); (0, [| 2; 4 |]) |]</c>
  </example>
 </member>
 <member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.MapIndexed``2(Microsoft.FSharp.Core.FSharpFunc{System.Int32,Microsoft.FSharp.Core.FSharpFunc{``0,``1}},``0[])">
@@ -9590,6 +9835,151 @@
  Evaluates to <c>[| 2 |]</c>
  </example>
 </member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.TryPick``2(Microsoft.FSharp.Core.FSharpFunc{``0,Microsoft.FSharp.Core.FSharpOption{``1}},``0[])">
+ <summary>Applies the given function to successive elements, returning the first
+ result where the function returns <c>Some(x)</c> for some <c>x</c>. If the function 
+ never returns <c>Some(x)</c> then <c>None</c> is returned.</summary>
+
+ <param name="chooser">The function to transform the array elements into options.</param>
+ <param name="array">The input array.</param>
+
+ <returns>The first transformed element that is <c>Some(x)</c>.</returns>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+
+ <example id="para-trypick-1">
+ <code lang="fsharp">
+ let input = [| 1; 2; 3 |]
+
+ input |> Array.Parallel.tryPick (fun n -> if n % 2 = 0 then Some (string n) else None)
+ </code>
+ Evaluates to <c>Some 2</c>.
+ </example>
+
+ <example id="para-trypick-2">
+ <code lang="fsharp">
+ let input = [| 1; 2; 3 |]
+
+ input |> Array.Parallel.tryPick (fun n -> if n > 3 = 0 then Some (string n) else None)
+ </code>
+ Evaluates to <c>None</c>.
+ </example>
+
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.TryFindIndex``1(Microsoft.FSharp.Core.FSharpFunc{``0,System.Boolean},``0[])">
+ <summary>Returns the index of the first element in the array
+ that satisfies the given predicate.
+ Returns <c>None</c> if no such element exists.</summary>
+ <param name="predicate">The function to test the input elements.</param>
+ <param name="array">The input array.</param>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+
+ <returns>The index of the first element that satisfies the predicate, or None.</returns>
+
+ <example id="para-tryfindindex-1">Try to find the index of the first even number:
+ <code lang="fsharp">
+ let inputs = [| 1; 2; 3; 4; 5 |]
+
+ inputs |> Array.Parallel.tryFindIndex (fun elm -> elm % 2 = 0)
+ </code>
+ Evaluates to <c>Some 1</c>
+ </example>
+
+ <example id="para-tryfindindex-2">Try to find the index of the first even number:
+ <code lang="fsharp">
+ let inputs = [| 1; 3; 5; 7 |]
+
+ inputs |> Array.Parallel.tryFindIndex (fun elm -> elm % 2 = 0)
+ </code>
+ Evaluates to <c>None</c>
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.TryFind``1(Microsoft.FSharp.Core.FSharpFunc{``0,System.Boolean},``0[])">
+ <summary>Returns the first element for which the given function returns <c>True</c>.
+ Returns None if no such element exists.</summary>
+
+ <param name="predicate">The function to test the input elements.</param>
+ <param name="array">The input array.</param>
+
+ <returns>The first element that satisfies the predicate, or None.</returns>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+
+ <example id="para-tryfind-1">Try to find the first even number:
+ <code lang="fsharp">
+ let inputs = [| 1; 2; 3 |]
+
+ inputs |> Array.Parallel.tryFind (fun elm -> elm % 2 = 0)
+ </code>
+ Evaluates to <c>Some 2</c>.
+ </example>
+
+ <example id="para-tryfind-2">Try to find the first even number:
+ <code lang="fsharp">
+ let inputs = [| 1; 5; 3 |]
+
+ inputs |> Array.Parallel.tryFind (fun elm -> elm % 2 = 0)
+ </code>
+ Evaluates to <c>None</c>
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.Exists``1(Microsoft.FSharp.Core.FSharpFunc{``0,System.Boolean},``0[])">
+ <summary>Tests if any element of the array satisfies the given predicate.</summary>
+
+ <remarks>The predicate is applied to the elements of the input array in parallel. If any application 
+ returns true then the overall result is true and testing of other elements in all threads is stopped at system's earliest convenience.
+ Otherwise, <c>false</c> is returned.</remarks>
+
+ <param name="predicate">The function to test the input elements.</param>
+ <param name="array">The input array.</param>
+
+ <returns>True if any result from <c>predicate</c> is true.</returns>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+
+ <example id="para-exists-1">
+ <code lang="fsharp">
+ let input = [| 1; 2; 3; 4; 5 |]
+
+ input |> Array.Parallel.exists (fun elm -> elm % 4 = 0)
+ </code>
+ Evaluates to <c>true</c>
+ </example>
+
+ <example id="para-exists-2">
+ <code lang="fsharp">
+ let input = [| 1; 2; 3; 4; 5 |]
+
+ input |> Array.Parallel.exists (fun elm -> elm % 6 = 0)
+ </code>
+ Evaluates to <c>false</c>
+ </example>
+</member>
+<member name="M:Microsoft.FSharp.Collections.ArrayModule.Parallel.ForAll``1(Microsoft.FSharp.Core.FSharpFunc{``0,System.Boolean},``0[])">
+ <summary>Tests if all elements of the array satisfy the given predicate.</summary>
+
+ <remarks>The predicate is applied to the elements of the input collection in parallel. If any application 
+ returns false then the overall result is false and testing of other elements in all threads is stopped at system's earliest convenience.
+ Otherwise, true is returned.</remarks>
+
+ <param name="predicate">The function to test the input elements.</param>
+ <param name="array">The input array.</param>
+
+ <returns>True if all of the array elements satisfy the predicate.</returns>
+
+ <exception cref="T:System.ArgumentNullException">Thrown when the input array is null.</exception>
+
+ <example id="para-forall-1">
+ <code lang="fsharp">
+ let isEven a = a % 2 = 0
+
+ [2; 42] |> Array.Parallel.forall isEven // evaluates to true
+
+ [1; 2] |> Array.Parallel.forall isEven // evaluates to false
+ </code>
+ </example>
+</member>
 <member name="T:Microsoft.FSharp.Collections.ArrayModule.Parallel">
  <summary>Provides parallel operations on arrays </summary>
 </member>
@@ -9597,7 +9987,7 @@
  <summary>Contains operations for working with arrays.</summary>
 
  <remarks>
-  See also <a href="https://docs.microsoft.com/dotnet/fsharp/language-reference/arrays">F# Language Guide - Arrays</a>.
+  See also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/arrays">F# Language Guide - Arrays</a>.
  </remarks>
 </member>
 <member name="M:Microsoft.FSharp.Collections.Array4DModule.Set``1(``0[0:, 0:, 0:],System.Int32,System.Int32,System.Int32,System.Int32,``0)">
@@ -10040,7 +10430,7 @@
  <summary>Contains operations for working with rank 3 arrays.</summary>
 
  <remarks>
-  See also <a href="https://docs.microsoft.com/dotnet/fsharp/language-reference/arrays">F# Language Guide - Arrays</a>.
+  See also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/arrays">F# Language Guide - Arrays</a>.
  </remarks>
 </member>
 <member name="M:Microsoft.FSharp.Collections.MapModule.MaxKeyValue``2(Microsoft.FSharp.Collections.FSharpMap{``0,``1})">
@@ -10545,8 +10935,7 @@
      match x with
      | Some s -> Some (s + "z")
      | None -> None
- )
- evaluates to map [(1, "az"); (2, "b")]
+ ) // evaluates to map [(1, "az"); (2, "b")]
  </code>
  </example>
 </member>
@@ -11133,6 +11522,15 @@
  <param name="types">An array of types for the tuple elements.</param>
 
  <returns>The type representing the tuple containing the input elements.</returns>
+
+ <example-tbd></example-tbd>
+</member>
+<member name="M:Microsoft.FSharp.Reflection.FSharpType.MakeStructTupleType(System.Type[])">
+ <summary>Returns a <see cref="T:System.Type"/> representing an F# struct tuple type with the given element types</summary>
+
+ <param name="types">An array of types for the tuple elements.</param>
+
+ <returns>The type representing the struct tuple containing the input elements.</returns>
 
  <example-tbd></example-tbd>
 </member>
@@ -11766,7 +12164,7 @@
 
  <namespacedoc><summary>
    Library functionality for accessing additional information about F# types and F# values at
-   runtime, augmenting that available through <a href="https://docs.microsoft.com/dotnet/api/system.reflection">System.Reflection</a>.
+   runtime, augmenting that available through <a href="https://learn.microsoft.com/dotnet/api/system.reflection">System.Reflection</a>.
  </summary></namespacedoc>
 </member>
 <member name="M:Microsoft.FSharp.Reflection.FSharpReflectionExtensions.FSharpType.IsExceptionRepresentation.Static(System.Type,Microsoft.FSharp.Core.FSharpOption{System.Boolean})">
@@ -12843,6 +13241,22 @@
  Evaluates to a quotation with the same structure as <c>&lt;@ (1, "a") @&gt;</c>.
  </example>
 </member>
+<member name="M:Microsoft.FSharp.Quotations.FSharpExpr.NewStructTuple(Microsoft.FSharp.Collections.FSharpList{Microsoft.FSharp.Quotations.FSharpExpr})">
+ <summary>Builds an expression that represents the creation of an F# tuple value</summary>
+
+ <param name="elements">The list of elements of the tuple.</param>
+
+ <returns>The resulting expression.</returns>
+
+ <example id="newstructtuple-1">
+ <code lang="fsharp">
+ open FSharp.Quotations
+
+ Expr.NewStructTuple( [ &lt;@ 1 @&gt;; &lt;@ "a" @&gt; ])
+ </code>
+ Evaluates to a quotation with the same structure as <c>&lt;@ struct (1, "a") @&gt;</c>.
+ </example>
+</member>
 <member name="M:Microsoft.FSharp.Quotations.FSharpExpr.NewStructTuple(System.Reflection.Assembly,Microsoft.FSharp.Collections.FSharpList{Microsoft.FSharp.Quotations.FSharpExpr})">
  <summary>Builds an expression that represents the creation of an F# tuple value</summary>
 
@@ -13535,7 +13949,7 @@
 
  <namespacedoc><summary>
    Library functionality for F# quotations.
-    See also <a href="https: //docs.microsoft.com/dotnet/fsharp/language-reference/code-quotations">F# Code Quotations</a> in the F# Language Guide.
+    See also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/code-quotations">F# Code Quotations</a> in the F# Language Guide.
  </summary></namespacedoc>
 </member>
 <member name="M:Microsoft.FSharp.Quotations.ExprShapeModule.RebuildShapeCombination(System.Object,Microsoft.FSharp.Collections.FSharpList{Microsoft.FSharp.Quotations.FSharpExpr})">
@@ -14564,7 +14978,7 @@
 
  <namespacedoc><summary>
    Library functionality for native interopability. See
-   also <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/functions/external-functions">F# External Functions</a> in
+   also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/functions/external-functions">F# External Functions</a> in
    the F# Language Guide.
  </summary></namespacedoc>
 </member>
@@ -15937,7 +16351,7 @@
  <summary>Holds static members for creating and manipulating asynchronous computations.</summary>
 
  <remarks>
-  See also <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/asynchronous-workflows">F# Language Guide - Async Workflows</a>.
+  See also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/async-expressions">F# Language Guide - Async Workflows</a>.
  </remarks>
 
  <category index="1">Async Programming</category>
@@ -15951,14 +16365,14 @@
   This type has no members. Asynchronous computations are normally specified either by using an async expression
   or the static methods in the <see cref="T:Microsoft.FSharp.Control.FSharpAsync`1"/> type.
 
-  See also <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/asynchronous-workflows">F# Language Guide - Async Workflows</a>.
+  See also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/async-expressions">F# Language Guide - Async Workflows</a>.
  </remarks> 
 
  <namespacedoc><summary>
    Library functionality for asynchronous programming, events and agents. See also
-   <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/asynchronous-workflows">Asynchronous Programming</a>, 
-   <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/members/events">Events</a> and
-   <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/lazy-expressions">Lazy Expressions</a> in the
+   <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/async-expressions">Asynchronous Programming</a>, 
+   <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/members/events">Events</a> and
+   <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/lazy-expressions">Lazy Expressions</a> in the
    F# Language Guide.
  </summary></namespacedoc>
 
@@ -16250,6 +16664,11 @@
  <summary>Posts a message to the message queue of the MailboxProcessor, asynchronously.</summary>
 
  <param name="message">The message to post.</param>
+
+ <example-tbd></example-tbd>
+</member>
+<member name="M:Microsoft.FSharp.Control.FSharpMailboxProcessor`1.Dispose">
+ <summary>Disposes the agent's internal resources.</summary>
 
  <example-tbd></example-tbd>
 </member>
@@ -17134,7 +17553,6 @@
  let observableNumbers = Observable.ToObservable numbers
 
  let isEvenNumber = fun number -> number % 2 = 0
- let initialState = 2
 
  let leftPartition, rightPartition =
      Observable.partition isEvenNumber observableNumbers
@@ -17563,7 +17981,7 @@
 <member name="T:Microsoft.FSharp.Linq.QueryBuilder">
 <summary>
  The type used to support the F# query syntax. Use &apos;query { ... }&apos; to use the query syntax. See
- also &lt;a href=&quot;https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/query-expressions&quot;&gt;F# Query Expressions&lt;/a&gt; in the F# Language Guide.
+ also &lt;a href=&quot;https://learn.microsoft.com/dotnet/fsharp/language-reference/query-expressions&quot;&gt;F# Query Expressions&lt;/a&gt; in the F# Language Guide.
 </summary>
 </member>
 <member name="P:Microsoft.FSharp.Linq.QuerySource`2.Source">
@@ -17583,7 +18001,7 @@
 
  <namespacedoc><summary>
    Library functionality for F# query syntax and interoperability with .NET LINQ Expressions. See
-   also <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/query-expressions">F# Query Expressions</a> in the F# Language Guide.
+   also <a href="https://learn.microsoft.com/dotnet/fsharp/language-reference/query-expressions">F# Query Expressions</a> in the F# Language Guide.
  </summary></namespacedoc>
 </member>
 <member name="M:Microsoft.FSharp.Linq.NullableModule.ToChar``1(Microsoft.FSharp.Core.FSharpFunc{``0,System.Char},System.Nullable{``0})">
@@ -19810,6 +20228,16 @@
  <see cref="T:System.Double"/>.</summary>
 
  <category index="6">Basic Types with Units of Measure</category>
+</member>
+<member name="M:Microsoft.FSharp.Core.NoCompilerInliningAttribute.#ctor">
+ <summary>Creates an instance of the attribute</summary>
+ <returns>NoCompilerInliningAttribute</returns>
+</member>
+<member name="T:Microsoft.FSharp.Core.NoCompilerInliningAttribute">
+ <summary>Indicates a value or a function that must not be inlined by the F# compiler,
+ but may be inlined by the JIT compiler.</summary>
+
+ <category>Attributes</category>
 </member>
 <member name="P:Microsoft.FSharp.Core.AutoOpenAttribute.Path">
  <summary>Indicates the namespace or module to be automatically opened when an assembly is referenced
@@ -26317,8 +26745,8 @@
 <member name="T:Microsoft.FSharp.Core.StringModule">
  <summary>Functional programming operators for string processing.  Further string operations
  are available via the member functions on strings and other functionality in
-  <a href="http://msdn2.microsoft.com/en-us/library/system.string.aspx">System.String</a>
- and <a href="http://msdn2.microsoft.com/library/system.text.regularexpressions.aspx">System.Text.RegularExpressions</a> types.
+  <a href="https://learn.microsoft.com/dotnet/api/system.string">System.String</a>
+ and <a href="https://learn.microsoft.com/dotnet/api/system.text.regularexpressions">System.Text.RegularExpressions</a> types.
  </summary>
 
  <category>Strings and Text</category>
@@ -27108,6 +27536,16 @@
  Checks if given type exists in target system runtime library
 </summary>
 </member>
+<member name="M:Microsoft.FSharp.Core.CompilerServices.TypeProviderConfig.#ctor(Microsoft.FSharp.Core.FSharpFunc{System.String,System.Boolean},Microsoft.FSharp.Core.FSharpFunc{Microsoft.FSharp.Core.Unit,System.String[]})">
+<summary>
+ Create a configuration which calls the given functions for the corresponding operation.
+</summary>
+</member>
+<member name="M:Microsoft.FSharp.Core.CompilerServices.TypeProviderConfig.#ctor(Microsoft.FSharp.Core.FSharpFunc{System.String,System.Boolean})">
+<summary>
+ Create a configuration which calls the given function for the corresponding operation.
+</summary>
+</member>
 <member name="T:Microsoft.FSharp.Core.CompilerServices.TypeProviderConfig">
 <summary>
  If the class that implements ITypeProvider has a constructor that accepts TypeProviderConfig
@@ -27190,7 +27628,7 @@
 
  <namespacedoc><summary>
    Library functionality for supporting type providers and code generated by the F# compiler. See
-   also <a href="https://docs.microsoft.com/en-us/dotnet/fsharp/tutorials/type-providers/">F# Type Providers</a> in the F# Language Guide.
+   also <a href="https://learn.microsoft.com/dotnet/fsharp/tutorials/type-providers/">F# Type Providers</a> in the F# Language Guide.
  </summary></namespacedoc>
 </member>
 <member name="M:Microsoft.FSharp.Core.CompilerServices.RuntimeHelpers.CreateEvent``2(Microsoft.FSharp.Core.FSharpFunc{``0,Microsoft.FSharp.Core.Unit},Microsoft.FSharp.Core.FSharpFunc{``0,Microsoft.FSharp.Core.Unit},Microsoft.FSharp.Core.FSharpFunc{Microsoft.FSharp.Core.FSharpFunc{System.Object,Microsoft.FSharp.Core.FSharpFunc{``1,Microsoft.FSharp.Core.Unit}},``0})">
@@ -27220,6 +27658,16 @@
  <param name="current">A function to retrieve the current element.</param>
 
  <returns>The resulting typed sequence.</returns>
+</member>
+<member name="M:Microsoft.FSharp.Core.CompilerServices.RuntimeHelpers.EnumerateTryWith``1(System.Collections.Generic.IEnumerable{``0},Microsoft.FSharp.Core.FSharpFunc{System.Exception,System.Int32},Microsoft.FSharp.Core.FSharpFunc{System.Exception,System.Collections.Generic.IEnumerable{``0}})">
+ <summary>The F# compiler emits calls to this function to
+ implement the <c>try/with</c> operator for F# sequence expressions.</summary>
+
+ <param name="source">The input sequence.</param>
+ <param name="exceptionFilter">Pattern matches after 'when' converted to return 1</param>
+ <param name="exceptionHandler">Pattern matches after 'when' with their actual execution code</param>
+
+ <returns>The result sequence.</returns>
 </member>
 <member name="M:Microsoft.FSharp.Core.CompilerServices.RuntimeHelpers.EnumerateThenFinally``1(System.Collections.Generic.IEnumerable{``0},Microsoft.FSharp.Core.FSharpFunc{Microsoft.FSharp.Core.Unit,Microsoft.FSharp.Core.Unit})">
  <summary>The F# compiler emits calls to this function to

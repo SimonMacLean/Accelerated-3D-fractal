@@ -1,1 +1,5 @@
-﻿
+﻿  MainForm.cpp
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\C++ 3D Fractal\3D Fractal\MainForm.cpp(211,2): warning C4305: 'initializing': truncation from 'double' to 'float'
+  MainForm.obj : MSIL module encountered; incremental linking is disabled for MSIL; performing full link
+MainForm.obj : warning LNK4248: unresolved typeref token (0100002F) for 'CUstream_st'; image may not run
+  3D Fractal.vcxproj -> C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\C++ 3D Fractal\x64\Debug\3D Fractal.exe

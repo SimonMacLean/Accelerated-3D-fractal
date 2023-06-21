@@ -51,7 +51,7 @@ namespace Accelerated_3D_fractal
         public Form1()
         {
             InitializeComponent();
-            gpu = Gpu.Default;
+            gpu = Gpu.Get(0);
             DoubleBuffered = true;
         }
         public void Init()

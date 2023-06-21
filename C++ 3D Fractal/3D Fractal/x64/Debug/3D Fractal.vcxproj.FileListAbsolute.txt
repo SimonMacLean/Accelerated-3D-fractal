@@ -1,0 +1,4 @@
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\C++ 3D Fractal\3D Fractal\x64\Debug\3D Fractal.vcxproj.AssemblyReference.cache
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\C++ 3D Fractal\3D Fractal\x64\Debug\3D Fractal.vcxproj.SuggestedBindingRedirects.cache
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\C++ 3D Fractal\3D Fractal\x64\Debug\Project1.MainForm.resources
+C:\Users\Simon DeFerrari\Documents\GitHub\Accelerated-3D-fractal\C++ 3D Fractal\3D Fractal\x64\Debug\3D Fractal.vcxproj.GenerateResource.cache

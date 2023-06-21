@@ -17,10 +17,10 @@ struct optimized_fractal_info
     float3 offset;
 };
 constexpr double pi = 3.14159265358979323846;
-constexpr float minimum_distance = 0.0001f;
-constexpr float maximum_distance = 50;
+constexpr float minimum_distance = 0.0002f;
+constexpr float maximum_distance = 30;
 constexpr int bytes = 3;
 constexpr float ambient_occ_strength = 0.05f;
 constexpr float shadow_strength = 8;
 constexpr float side = 1;
-constexpr float max_steps = 1024;
+constexpr float max_steps = 512;
