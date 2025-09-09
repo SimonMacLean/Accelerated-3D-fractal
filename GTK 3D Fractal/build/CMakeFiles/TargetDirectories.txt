@@ -1,0 +1,3 @@
+/home/runner/work/Accelerated-3D-fractal/Accelerated-3D-fractal/GTK 3D Fractal/build/CMakeFiles/GTK_3D_Fractal.dir
+/home/runner/work/Accelerated-3D-fractal/Accelerated-3D-fractal/GTK 3D Fractal/build/CMakeFiles/edit_cache.dir
+/home/runner/work/Accelerated-3D-fractal/Accelerated-3D-fractal/GTK 3D Fractal/build/CMakeFiles/rebuild_cache.dir
