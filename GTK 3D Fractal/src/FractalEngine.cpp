@@ -242,38 +242,40 @@ OptimizedFractalInfo FractalEngine::optimizeParams(const FractalCreationInfo& in
 }
 
 FractalCreationInfo FractalEngine::getPresetConfig(FractalPreset preset) {
-    FractalCreationInfo config;
+    // Preset configurations from the original implementation
+    static const FractalCreationInfo presets[25] = {
+        {1.0f, 0.0f, 0.0f, {0.0f, 0.0f, 0.0f}}, // Custom
+        {1.8f, -0.12f, 0.5f, {0.353333f, 0.458333f, -0.081667f}}, // Jump the Crater
+        {1.9073f, 2.72f, -1.16f, {0.493000f, 0.532167f, -0.449167f}}, // Too Many Trees
+        {2.02f, -1.57f, 1.62f, {0.551667f, -1.031667f, -0.255000f}}, // Hole in One
+        {1.65f, 0.37f, -1.023f, {0.235000f, 0.036667f, 0.128333f}}, // Around the World
+        {1.77f, -0.22f, -0.663f, {0.346667f, 0.236667f, 0.321667f}}, // The Hills Are Alive
+        {1.66f, 1.52f, 0.19f, {0.638333f, 0.323333f, 0.181667f}}, // Beware of Bumps
+        {1.58f, -1.45f, -2.333f, {0.258333f, 0.021667f, 0.420000f}}, // Mountain Climbing
+        {1.87f, 3.141f, 0.02f, {0.595000f, -0.021500f, -0.491667f}}, // The Catwalk
+        {1.81f, 1.44f, -2.99f, {0.484167f, -0.127500f, 0.694167f}}, // Mind the Gap
+        {1.93f, 1.34637f, 1.58f, {0.385000f, -0.187167f, -0.260000f}}, // Don't Get Crushed
+        {1.88f, 1.52f, -1.373f, {0.756667f, 0.210000f, -0.016667f}}, // The Sponge
+        {1.6f, -2.51f, -2.353f, {0.333333f, 0.068333f, 0.238333f}}, // Ride the Gecko
+        {2.08f, 1.493f, 3.141f, {1.238333f, -0.993333f, 1.038333f}}, // Build Up Speed
+        {2.0773f, 2.906f, -1.34f, {0.206333f, 0.255500f, -0.180833f}}, // Around the Citadel
+        {1.78f, -0.1f, -3.003f, {0.245000f, -0.283333f, 0.066667f}}, // Planet Crusher
+        {2.0773f, 2.906f, -1.34f, {0.206333f, 0.255500f, -0.180833f}}, // Top of the Citadel
+        {1.8093f, 3.141f, 3.074f, {0.182317f, 0.072492f, 0.518550f}}, // Building Bridges
+        {1.95f, 1.570796f, 0.0f, {1.125000f, 0.500000f, 0.000000f}}, // Pylon Palace
+        {1.91f, 0.06f, -0.76f, {0.573333f, 0.115000f, 0.190000f}}, // The Crown Jewels
+        {1.8986f, -0.4166f, 0.00683f, {0.418833f, 0.901117f, 0.418333f}}, // Expressways
+        {2.03413f, 1.688f, -1.57798f, {0.800637f, 0.683333f, 0.231772f}}, // Bunny Hops
+        {1.6516888f, 0.026083898f, -0.7996324f, {0.643105f, 0.856235f, 0.153051f}}, // Asteroid Field
+        {1.77746f, -1.66f, 0.0707307f, {0.781117f, 0.140627f, -0.330263f}}, // Lily Pads
+        {2.13f, -1.77f, -1.62f, {0.831667f, 0.508333f, 0.746667f}} // Fatal Fissures
+    };
     
-    // Default values
-    config.scale = 1.0f;
-    config.theta = 0.0f;
-    config.phi = 0.0f;
-    config.offset = Vec3(0.0f, 0.0f, 0.0f);
-    
-    // Apply preset-specific configurations
-    switch (preset) {
-        case FractalPreset::JUMP_THE_CRATER:
-            config.scale = 1.2f;
-            config.theta = 0.5f;
-            config.phi = 0.3f;
-            config.offset = Vec3(0.1f, 0.1f, 0.0f);
-            break;
-        case FractalPreset::TOO_MANY_TREES:
-            config.scale = 0.8f;
-            config.theta = 1.0f;
-            config.phi = 0.8f;
-            config.offset = Vec3(0.2f, 0.0f, 0.1f);
-            break;
-        case FractalPreset::HOLE_IN_ONE:
-            config.scale = 1.5f;
-            config.theta = 0.2f;
-            config.phi = 1.2f;
-            config.offset = Vec3(0.0f, 0.3f, 0.2f);
-            break;
-        // Add more presets as needed
-        default:
-            break;
+    int index = static_cast<int>(preset);
+    if (index >= 0 && index < 25) {
+        return presets[index];
     }
     
-    return config;
+    // Return custom default if index is out of range
+    return presets[0];
 }
